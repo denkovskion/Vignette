@@ -1,0 +1,48 @@
+name: Build and attach release artifacts
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+
+      - name: Compile and package
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          REPO_NAME=${{ github.event.repository.name }}
+
+          DIR_NAME="$REPO_NAME-$VERSION-CLI"
+
+          mkdir -p bin
+          find src -name "*.java" > sources.txt
+          javac -d bin @sources.txt
+
+          printf "Implementation-Title: %s\nImplementation-Version: %s\nImplementation-Vendor: %s\nBuild-Time: %s\n" \
+            "$REPO_NAME" "$VERSION" "${{ github.repository_owner }}" "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > MANIFEST.MF
+          cat src/META-INF/MANIFEST.MF >> MANIFEST.MF
+
+          jar cvfm "$REPO_NAME.jar" MANIFEST.MF -C bin .
+
+          mkdir -p "$DIR_NAME"
+          cp "$REPO_NAME.jar" LICENSE *.md "$DIR_NAME/"
+
+          zip -r "$DIR_NAME.zip" "$DIR_NAME"
+
+      - name: Upload asset
+        run: gh release upload "$GITHUB_REF_NAME" *.zip
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
