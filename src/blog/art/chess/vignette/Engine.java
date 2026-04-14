@@ -36,6 +36,7 @@ import blog.art.chess.vignette.Moves.QuietMove;
 import blog.art.chess.vignette.Moves.ShortCastling;
 import blog.art.chess.vignette.Pieces.Colour;
 import blog.art.chess.vignette.Pieces.Piece;
+import blog.art.chess.vignette.Pieces.Square;
 import blog.art.chess.vignette.Pieces.Unit;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -77,17 +78,8 @@ class Engine {
   }
 
   static boolean isPositionLegal(Position position, List<Move> pseudoLegalMoves) {
-    for (int origin = 0; origin < 120; origin++) {
-      if (position.board.get(origin) instanceof Piece piece) {
-        if (piece.colour() == position.sideToMove) {
-          if (!Pieces.generateMoves(piece, origin, position.board, position.castlingOrigins,
-              position.enPassantTarget, pseudoLegalMoves)) {
-            return false;
-          }
-        }
-      }
-    }
-    return true;
+    return Pieces.isKingInCheck(position.board, position.sideToMove, position.castlingOrigins,
+        position.enPassantTarget, pseudoLegalMoves, false) == 0;
   }
 
   static boolean makeMove(Move move, Position position, List<Move> pseudoLegalMoves,
@@ -97,26 +89,27 @@ class Engine {
         case NullMove() -> lanBuilder.append((String) null);
         case QuietMove(int origin, int target) ->
             lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
-                .append(toLanCode(origin)).append("-").append(toLanCode(target));
+                .append(Pieces.toLanCode(origin)).append("-").append(Pieces.toLanCode(target));
         case Capture(int origin, int target) ->
             lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
-                .append(toLanCode(origin)).append("x").append(toLanCode(target));
+                .append(Pieces.toLanCode(origin)).append("x").append(Pieces.toLanCode(target));
         case LongCastling(_, _, _, _) -> lanBuilder.append("0-0-0");
         case ShortCastling(_, _, _, _) -> lanBuilder.append("0-0");
         case DoubleStep(int origin, int target, _) ->
             lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
-                .append(toLanCode(origin)).append("-").append(toLanCode(target));
+                .append(Pieces.toLanCode(origin)).append("-").append(Pieces.toLanCode(target));
         case EnPassant(int origin, int target, _) ->
             lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
-                .append(toLanCode(origin)).append("x").append(toLanCode(target)).append(" e.p.");
+                .append(Pieces.toLanCode(origin)).append("x").append(Pieces.toLanCode(target))
+                .append(" e.p.");
         case Promotion(int origin, int target, Piece promoted) ->
             lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
-                .append(toLanCode(origin)).append("-").append(toLanCode(target)).append("=")
-                .append(Pieces.toLanCode(promoted));
+                .append(Pieces.toLanCode(origin)).append("-").append(Pieces.toLanCode(target))
+                .append("=").append(Pieces.toLanCode(promoted));
         case PromotionCapture(int origin, int target, Piece promoted) ->
             lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
-                .append(toLanCode(origin)).append("x").append(toLanCode(target)).append("=")
-                .append(Pieces.toLanCode(promoted));
+                .append(Pieces.toLanCode(origin)).append("x").append(Pieces.toLanCode(target))
+                .append("=").append(Pieces.toLanCode(promoted));
       }
     }
     if (switch (move) {
@@ -146,14 +139,8 @@ class Engine {
           List<Move> pseudoLegalMovesNext = pseudoLegalMoves;
           if (pseudoLegalMovesNext == null) {
             pseudoLegalMovesNext = new ArrayList<>();
-            for (int origin = 0; origin < 120; origin++) {
-              if (position.board.get(origin) instanceof Piece piece) {
-                if (piece.colour() == position.sideToMove) {
-                  Pieces.generateMoves(piece, origin, position.board, position.castlingOrigins,
-                      position.enPassantTarget, pseudoLegalMovesNext);
-                }
-              }
-            }
+            Pieces.isKingInCheck(position.board, position.sideToMove, position.castlingOrigins,
+                position.enPassantTarget, pseudoLegalMovesNext, true);
           }
           boolean terminal = true;
           for (Move moveNext : pseudoLegalMovesNext) {
@@ -162,19 +149,10 @@ class Engine {
               break;
             }
           }
-          int nChecks = 0;
           Position opposite = new Position(position);
           doMakeMove(new NullMove(), opposite);
-          for (int origin = 0; origin < 120; origin++) {
-            if (opposite.board.get(origin) instanceof Piece piece) {
-              if (piece.colour() == opposite.sideToMove) {
-                if (!Pieces.generateMoves(piece, origin, opposite.board, opposite.castlingOrigins,
-                    opposite.enPassantTarget, null)) {
-                  nChecks++;
-                }
-              }
-            }
-          }
+          int nChecks = Pieces.isKingInCheck(opposite.board, opposite.sideToMove,
+              opposite.castlingOrigins, opposite.enPassantTarget, null, true);
           if (terminal) {
             if (nChecks > 0) {
               if (nChecks > 1) {
@@ -200,46 +178,46 @@ class Engine {
     switch (move) {
       case NullMove() -> position.enPassantTarget = null;
       case QuietMove(int origin, int target) -> {
-        position.board.set(target, position.board.set(origin, null));
+        position.board.set(target, position.board.set(origin, Square.EMPTY));
         position.castlingOrigins.remove(origin);
         position.enPassantTarget = null;
       }
       case Capture(int origin, int target) -> {
-        position.board.set(target, position.board.set(origin, null));
+        position.board.set(target, position.board.set(origin, Square.EMPTY));
         position.castlingOrigins.remove(origin);
         position.castlingOrigins.remove(target);
         position.enPassantTarget = null;
       }
       case LongCastling(int origin, int target, int origin2, int target2) -> {
-        position.board.set(target, position.board.set(origin, null));
-        position.board.set(target2, position.board.set(origin2, null));
+        position.board.set(target, position.board.set(origin, Square.EMPTY));
+        position.board.set(target2, position.board.set(origin2, Square.EMPTY));
         position.castlingOrigins.remove(origin);
         position.castlingOrigins.remove(origin2);
         position.enPassantTarget = null;
       }
       case ShortCastling(int origin, int target, int origin2, int target2) -> {
-        position.board.set(target, position.board.set(origin, null));
-        position.board.set(target2, position.board.set(origin2, null));
+        position.board.set(target, position.board.set(origin, Square.EMPTY));
+        position.board.set(target2, position.board.set(origin2, Square.EMPTY));
         position.castlingOrigins.remove(origin);
         position.castlingOrigins.remove(origin2);
         position.enPassantTarget = null;
       }
       case DoubleStep(int origin, int target, int stop) -> {
-        position.board.set(target, position.board.set(origin, null));
+        position.board.set(target, position.board.set(origin, Square.EMPTY));
         position.enPassantTarget = stop;
       }
       case EnPassant(int origin, int target, int stop) -> {
-        position.board.set(stop, null);
-        position.board.set(target, position.board.set(origin, null));
+        position.board.set(stop, Square.EMPTY);
+        position.board.set(target, position.board.set(origin, Square.EMPTY));
         position.enPassantTarget = null;
       }
       case Promotion(int origin, int target, Piece promoted) -> {
-        position.board.set(origin, null);
+        position.board.set(origin, Square.EMPTY);
         position.board.set(target, promoted);
         position.enPassantTarget = null;
       }
       case PromotionCapture(int origin, int target, Piece promoted) -> {
-        position.board.set(origin, null);
+        position.board.set(origin, Square.EMPTY);
         position.board.set(target, promoted);
         position.castlingOrigins.remove(target);
         position.enPassantTarget = null;
@@ -249,10 +227,6 @@ class Engine {
       case WHITE -> Colour.BLACK;
       case BLACK -> Colour.WHITE;
     };
-  }
-
-  private static String toLanCode(int square) {
-    return new String(new char[]{(char) ('a' + square / 10 - 2), (char) ('1' + square % 10 - 1)});
   }
 
   static String toFormatted(Position position, String operation) {

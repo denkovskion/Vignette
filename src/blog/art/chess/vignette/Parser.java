@@ -26,13 +26,13 @@ package blog.art.chess.vignette;
 
 import blog.art.chess.vignette.Engine.Position;
 import blog.art.chess.vignette.Pieces.Bishop;
-import blog.art.chess.vignette.Pieces.Border;
 import blog.art.chess.vignette.Pieces.Colour;
 import blog.art.chess.vignette.Pieces.King;
 import blog.art.chess.vignette.Pieces.Knight;
 import blog.art.chess.vignette.Pieces.Pawn;
 import blog.art.chess.vignette.Pieces.Queen;
 import blog.art.chess.vignette.Pieces.Rook;
+import blog.art.chess.vignette.Pieces.Square;
 import blog.art.chess.vignette.Pieces.Unit;
 import blog.art.chess.vignette.Solver.MateSearch;
 import blog.art.chess.vignette.Solver.Perft;
@@ -59,7 +59,8 @@ class Parser {
           for (int square = 0; square < 120; square++) {
             int file = square / 10 - 1;
             int rank = square % 10;
-            board.add(file >= 1 && file <= 8 && rank >= 1 && rank <= 8 ? null : new Border());
+            board.add(
+                file >= 1 && file <= 8 && rank >= 1 && rank <= 8 ? Square.EMPTY : Square.BORDER);
           }
           try (Scanner characters = new Scanner(fields.next())) {
             characters.useDelimiter("");
