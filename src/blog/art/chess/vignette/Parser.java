@@ -26,10 +26,10 @@ package blog.art.chess.vignette;
 
 import blog.art.chess.vignette.Engine.Position;
 import blog.art.chess.vignette.Pieces.Bishop;
-import blog.art.chess.vignette.Pieces.Colour;
 import blog.art.chess.vignette.Pieces.King;
 import blog.art.chess.vignette.Pieces.Knight;
 import blog.art.chess.vignette.Pieces.Pawn;
+import blog.art.chess.vignette.Pieces.Piece;
 import blog.art.chess.vignette.Pieces.Queen;
 import blog.art.chess.vignette.Pieces.Rook;
 import blog.art.chess.vignette.Pieces.Square;
@@ -75,27 +75,29 @@ class Parser {
                 String letter = characters.next("[KQRBNPkqrbnp]");
                 int square = (file + 1) * 10 + rank;
                 switch (letter) {
-                  case "K" -> board.set(square, new King(Colour.WHITE));
-                  case "Q" -> board.set(square, new Queen(Colour.WHITE));
-                  case "R" -> board.set(square, new Rook(Colour.WHITE));
-                  case "B" -> board.set(square, new Bishop(Colour.WHITE));
-                  case "N" -> board.set(square, new Knight(Colour.WHITE));
-                  case "P" -> board.set(square, new Pawn(Colour.WHITE));
-                  case "k" -> board.set(square, new King(Colour.BLACK));
-                  case "q" -> board.set(square, new Queen(Colour.BLACK));
-                  case "r" -> board.set(square, new Rook(Colour.BLACK));
-                  case "b" -> board.set(square, new Bishop(Colour.BLACK));
-                  case "n" -> board.set(square, new Knight(Colour.BLACK));
-                  case "p" -> board.set(square, new Pawn(Colour.BLACK));
+                  case "K" -> board.set(square, new King(false));
+                  case "Q" -> board.set(square, new Queen(false));
+                  case "R" -> board.set(square, new Rook(false));
+                  case "B" -> board.set(square, new Bishop(false));
+                  case "N" -> board.set(square, new Knight(false));
+                  case "P" -> board.set(square, new Pawn(false));
+                  case "k" -> board.set(square, new King(true));
+                  case "q" -> board.set(square, new Queen(true));
+                  case "r" -> board.set(square, new Rook(true));
+                  case "b" -> board.set(square, new Bishop(true));
+                  case "n" -> board.set(square, new Knight(true));
+                  case "p" -> board.set(square, new Pawn(true));
                 }
               }
               characters.skip(rank > 1 ? "/" : "$");
             }
           }
-          Colour sideToMove = null;
-          switch (fields.next("[wb]")) {
-            case "w" -> sideToMove = Colour.WHITE;
-            case "b" -> sideToMove = Colour.BLACK;
+          boolean blackToMove = false;
+          if (fields.hasNext("w")) {
+            fields.next();
+          } else {
+            fields.next("b");
+            blackToMove = true;
           }
           Set<Integer> castlingOrigins = new HashSet<>();
           if (fields.hasNext("-")) {
@@ -130,7 +132,7 @@ class Parser {
               int nPlies = Integer.parseInt(fields.match().group(1));
               fields.skip("\\s*$");
               problems.add(
-                  new Problem(new Position(board, sideToMove, castlingOrigins, enPassantTarget),
+                  new Problem(new Position(board, blackToMove, castlingOrigins, enPassantTarget),
                       new Perft(nPlies)));
             }
             case "dm" -> {
@@ -138,7 +140,7 @@ class Parser {
               int nMoves = Integer.parseInt(fields.match().group(1));
               fields.skip("\\s*$");
               problems.add(
-                  new Problem(new Position(board, sideToMove, castlingOrigins, enPassantTarget),
+                  new Problem(new Position(board, blackToMove, castlingOrigins, enPassantTarget),
                       new MateSearch(nMoves)));
             }
           }
@@ -152,5 +154,75 @@ class Parser {
       }
     }
     return problems;
+  }
+
+  static void write(Problem problem) {
+    IO.println("_".repeat(42));
+    List<String> args = new ArrayList<>();
+    for (int rank = 8; rank >= 1; rank--) {
+      for (int file = 1; file <= 8; file++) {
+        Unit other = problem.position().board().get((file + 1) * 10 + rank);
+        if (other.equals(Square.EMPTY)) {
+          args.add(".");
+        } else if (other instanceof Piece piece) {
+          String code = switch (piece) {
+            case King _ -> "K";
+            case Queen _ -> "Q";
+            case Rook _ -> "R";
+            case Bishop _ -> "B";
+            case Knight _ -> "N";
+            case Pawn _ -> "P";
+          };
+          args.add(piece.black() ? code.toLowerCase() : code.toUpperCase());
+        }
+      }
+      switch (rank) {
+        case 8 -> args.add(problem.position().blackToMove() ? "b" : "w");
+        case 7 -> {
+          if (!problem.position().castlingOrigins().isEmpty()) {
+            StringBuilder arg = new StringBuilder();
+            if (problem.position().castlingOrigins().contains(61)) {
+              if (problem.position().castlingOrigins().contains(91)) {
+                arg.append("K");
+              }
+              if (problem.position().castlingOrigins().contains(21)) {
+                arg.append("Q");
+              }
+            }
+            if (problem.position().castlingOrigins().contains(68)) {
+              if (problem.position().castlingOrigins().contains(98)) {
+                arg.append("k");
+              }
+              if (problem.position().castlingOrigins().contains(28)) {
+                arg.append("q");
+              }
+            }
+            args.add(arg.toString());
+          } else {
+            args.add("-");
+          }
+        }
+        case 6 -> {
+          if (problem.position().enPassantTarget() != null) {
+            args.add(new String(
+                new char[]{(char) ('a' + problem.position().enPassantTarget() / 10 - 2),
+                    (char) ('1' + problem.position().enPassantTarget() % 10 - 1)}));
+          } else {
+            args.add("-");
+          }
+        }
+        case 4 -> args.add(switch (problem.stipulation()) {
+          case Perft(int nPlies) -> "Perft at depth %d".formatted(nPlies);
+          case MateSearch(int nMoves) -> "Mate in %d".formatted(nMoves);
+        });
+      }
+    }
+    IO.println(("8 %s %s %s %s %s %s %s %s    Side to move: %s%n"
+        + "7 %s %s %s %s %s %s %s %s    Castling rights: %s%n"
+        + "6 %s %s %s %s %s %s %s %s    En passant target: %s%n" + "5 %s %s %s %s %s %s %s %s%n"
+        + "4 %s %s %s %s %s %s %s %s    %s%n" + "3 %s %s %s %s %s %s %s %s%n"
+        + "2 %s %s %s %s %s %s %s %s%n" + "1 %s %s %s %s %s %s %s %s%n"
+        + "  a b c d e f g h").formatted(args.toArray()));
+    IO.println();
   }
 }

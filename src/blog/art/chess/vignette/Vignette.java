@@ -73,6 +73,7 @@ class Vignette {
     LOGGER.info("Vignette %s Copyright (c) 2026 Ivan Denkovski".formatted(getVersion()));
     List<Problem> problems = Parser.readAllProblems();
     for (Problem problem : problems) {
+      Parser.write(problem);
       Solver.solve(problem);
     }
   }

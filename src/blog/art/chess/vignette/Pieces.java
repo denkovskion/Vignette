@@ -33,7 +33,6 @@ import blog.art.chess.vignette.Moves.Promotion;
 import blog.art.chess.vignette.Moves.PromotionCapture;
 import blog.art.chess.vignette.Moves.QuietMove;
 import blog.art.chess.vignette.Moves.ShortCastling;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -45,229 +44,173 @@ class Pieces {
 
   enum Square implements Unit {EMPTY, BORDER}
 
-  enum Colour {WHITE, BLACK}
-
   sealed interface Piece extends Unit {
 
-    Colour colour();
+    boolean black();
   }
 
-  sealed interface Leaper extends Piece {
-
-  }
-
-  sealed interface Rider extends Piece {
+  sealed interface Category extends Piece {
 
   }
 
-  record King(Colour colour) implements Leaper {
+  record King(boolean black) implements Category {
 
   }
 
-  record Queen(Colour colour) implements Rider {
+  record Queen(boolean black) implements Category {
 
   }
 
-  record Rook(Colour colour) implements Rider {
+  record Rook(boolean black) implements Category {
 
   }
 
-  record Bishop(Colour colour) implements Rider {
+  record Bishop(boolean black) implements Category {
 
   }
 
-  record Knight(Colour colour) implements Leaper {
+  record Knight(boolean black) implements Category {
 
   }
 
-  record Pawn(Colour colour) implements Piece {
+  record Pawn(boolean black) implements Piece {
 
   }
 
-  static int isKingInCheck(List<Unit> board, Colour sideToMove, Set<Integer> castlingOrigins,
+  static int isLegal(List<Unit> board, boolean blackToMove, Set<Integer> castlingOrigins,
       Integer enPassantTarget, List<Move> moves, boolean count) {
     int nChecks = 0;
     for (int origin = 0; origin < 120; origin++) {
-      if (board.get(origin) instanceof Piece piece) {
-        if (piece.colour() == sideToMove) {
-          switch (piece) {
-            case Leaper leaper -> {
-              int[] directions = switch (leaper) {
-                case King _ -> new int[]{-11, -10, -9, -1, 1, 9, 10, 11};
-                case Knight _ -> new int[]{-21, -19, -12, -8, 8, 12, 19, 21};
-              };
-              for (int direction : directions) {
-                int target = origin + direction;
+      if (board.get(origin) instanceof Piece piece && piece.black() == blackToMove) {
+        switch (piece) {
+          case Category category -> {
+            int[] directions = switch (category) {
+              case King _, Queen _ -> new int[]{-11, -10, -9, -1, 1, 9, 10, 11};
+              case Rook _ -> new int[]{-10, -1, 1, 10};
+              case Bishop _ -> new int[]{-11, -9, 9, 11};
+              case Knight _ -> new int[]{-21, -19, -12, -8, 8, 12, 19, 21};
+            };
+            for (int direction : directions) {
+              for (int distance = 1; ; distance++) {
+                int target = origin + distance * direction;
                 Unit other = board.get(target);
-                if (other != Square.EMPTY) {
-                  if (other instanceof Piece captured) {
-                    if (captured.colour() != leaper.colour()) {
-                      if (captured instanceof King) {
-                        if (count) {
-                          nChecks++;
-                        } else {
-                          return 1;
-                        }
-                      }
-                      if (moves != null) {
-                        moves.add(new Capture(origin, target));
-                      }
-                    }
-                  }
-                } else {
+                if (other.equals(Square.EMPTY)) {
                   if (moves != null) {
                     moves.add(new QuietMove(origin, target));
                   }
-                }
-              }
-              switch (leaper) {
-                case King _ -> {
-                  if (castlingOrigins.contains(origin)) {
-                    int[] castlingDirections = {-10, 10};
-                    for (int direction : castlingDirections) {
-                      int distance = 1;
-                      int target2 = origin + distance * direction;
-                      if (board.get(target2) == Square.EMPTY) {
-                        distance++;
-                        int target = origin + distance * direction;
-                        if (board.get(target) == Square.EMPTY) {
-                          distance++;
-                          if (direction > 0) {
-                            int origin2 = origin + distance * direction;
-                            if (castlingOrigins.contains(origin2)) {
-                              if (moves != null) {
-                                moves.add(new ShortCastling(origin, target, origin2, target2));
-                              }
-                            }
-                          } else {
-                            int stop = origin + distance * direction;
-                            if (board.get(stop) == Square.EMPTY) {
-                              distance++;
-                              int origin2 = origin + distance * direction;
-                              if (castlingOrigins.contains(origin2)) {
-                                if (moves != null) {
-                                  moves.add(new LongCastling(origin, target, origin2, target2));
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-                case Knight _ -> {
-                }
-              }
-            }
-            case Rider rider -> {
-              int[] directions = switch (rider) {
-                case Queen _ -> new int[]{-11, -10, -9, -1, 1, 9, 10, 11};
-                case Rook _ -> new int[]{-10, -1, 1, 10};
-                case Bishop _ -> new int[]{-11, -9, 9, 11};
-              };
-              for (int direction : directions) {
-                for (int distance = 1; ; distance++) {
-                  int target = origin + distance * direction;
-                  Unit other = board.get(target);
-                  if (other != Square.EMPTY) {
-                    if (other instanceof Piece captured) {
-                      if (captured.colour() != rider.colour()) {
-                        if (captured instanceof King) {
-                          if (count) {
-                            nChecks++;
-                          } else {
-                            return 1;
-                          }
-                        }
-                        if (moves != null) {
-                          moves.add(new Capture(origin, target));
-                        }
-                      }
-                    }
+                  if (category instanceof King || category instanceof Knight) {
                     break;
-                  } else {
-                    if (moves != null) {
-                      moves.add(new QuietMove(origin, target));
-                    }
                   }
-                }
-              }
-            }
-            case Pawn pawn -> {
-              int[] captureDirections = switch (pawn.colour()) {
-                case WHITE -> new int[]{-9, 11};
-                case BLACK -> new int[]{-11, 9};
-              };
-              for (int direction : captureDirections) {
-                int target = origin + direction;
-                if (board.get(target) instanceof Piece captured) {
-                  if (captured.colour() != pawn.colour()) {
+                } else {
+                  if (other instanceof Piece captured && captured.black() != category.black()) {
                     if (captured instanceof King) {
                       if (count) {
                         nChecks++;
                       } else {
-                        return 1;
+                        return 0;
                       }
                     }
-                    if (origin % 10 == switch (pawn.colour()) {
-                      case WHITE -> 7;
-                      case BLACK -> 2;
-                    }) {
-                      List<Piece> box = List.of(new Queen(pawn.colour()), new Rook(pawn.colour()),
-                          new Bishop(pawn.colour()), new Knight(pawn.colour()));
-                      for (Piece promoted : box) {
-                        if (moves != null) {
-                          moves.add(new PromotionCapture(origin, target, promoted));
-                        }
-                      }
-                    } else {
-                      if (moves != null) {
-                        moves.add(new Capture(origin, target));
-                      }
+                    if (moves != null) {
+                      moves.add(new Capture(origin, target));
                     }
                   }
-                } else {
-                  if (enPassantTarget != null) {
-                    if (target == enPassantTarget) {
-                      int stop = (target / 10) * 10 + origin % 10;
-                      if (moves != null) {
-                        moves.add(new EnPassant(origin, target, stop));
+                  break;
+                }
+              }
+            }
+            if (category instanceof King) {
+              if (castlingOrigins.contains(origin)) {
+                int[] castlingDirections = {-10, 10};
+                for (int direction : castlingDirections) {
+                  int distance = 1;
+                  int target2 = origin + distance * direction;
+                  if (board.get(target2).equals(Square.EMPTY)) {
+                    distance++;
+                    int target = origin + distance * direction;
+                    if (board.get(target).equals(Square.EMPTY)) {
+                      distance++;
+                      if (direction > 0) {
+                        int origin2 = origin + distance * direction;
+                        if (castlingOrigins.contains(origin2)) {
+                          if (moves != null) {
+                            moves.add(new ShortCastling(origin, target, origin2, target2));
+                          }
+                        }
+                      } else {
+                        int stop = origin + distance * direction;
+                        if (board.get(stop).equals(Square.EMPTY)) {
+                          distance++;
+                          int origin2 = origin + distance * direction;
+                          if (castlingOrigins.contains(origin2)) {
+                            if (moves != null) {
+                              moves.add(new LongCastling(origin, target, origin2, target2));
+                            }
+                          }
+                        }
                       }
                     }
                   }
                 }
               }
-              int direction = switch (pawn.colour()) {
-                case WHITE -> 1;
-                case BLACK -> -1;
-              };
+            }
+          }
+          case Pawn pawn -> {
+            int[] captureDirections = pawn.black() ? new int[]{-11, 9} : new int[]{-9, 11};
+            for (int direction : captureDirections) {
               int target = origin + direction;
-              if (board.get(target) == Square.EMPTY) {
-                if (origin % 10 == switch (pawn.colour()) {
-                  case WHITE -> 7;
-                  case BLACK -> 2;
-                }) {
-                  List<Piece> box = List.of(new Queen(pawn.colour()), new Rook(pawn.colour()),
-                      new Bishop(pawn.colour()), new Knight(pawn.colour()));
+              Unit other = board.get(target);
+              if (other.equals(Square.EMPTY)) {
+                if (enPassantTarget != null) {
+                  if (target == enPassantTarget) {
+                    int stop = (target / 10) * 10 + origin % 10;
+                    if (moves != null) {
+                      moves.add(new EnPassant(origin, target, stop));
+                    }
+                  }
+                }
+              } else if (other instanceof Piece captured && captured.black() != pawn.black()) {
+                if (captured instanceof King) {
+                  if (count) {
+                    nChecks++;
+                  } else {
+                    return 0;
+                  }
+                }
+                if (origin % 10 == (pawn.black() ? 2 : 7)) {
+                  List<Piece> box = List.of(new Queen(pawn.black()), new Rook(pawn.black()),
+                      new Bishop(pawn.black()), new Knight(pawn.black()));
                   for (Piece promoted : box) {
                     if (moves != null) {
-                      moves.add(new Promotion(origin, target, promoted));
+                      moves.add(new PromotionCapture(origin, target, promoted));
                     }
                   }
                 } else {
                   if (moves != null) {
-                    moves.add(new QuietMove(origin, target));
+                    moves.add(new Capture(origin, target));
                   }
-                  if (origin % 10 == switch (pawn.colour()) {
-                    case WHITE -> 2;
-                    case BLACK -> 7;
-                  }) {
-                    int target2 = origin + 2 * direction;
-                    if (board.get(target2) == Square.EMPTY) {
-                      if (moves != null) {
-                        moves.add(new DoubleStep(origin, target2, target));
-                      }
+                }
+              }
+            }
+            int direction = pawn.black() ? -1 : 1;
+            int target = origin + direction;
+            if (board.get(target).equals(Square.EMPTY)) {
+              if (origin % 10 == (pawn.black() ? 2 : 7)) {
+                List<Piece> box = List.of(new Queen(pawn.black()), new Rook(pawn.black()),
+                    new Bishop(pawn.black()), new Knight(pawn.black()));
+                for (Piece promoted : box) {
+                  if (moves != null) {
+                    moves.add(new Promotion(origin, target, promoted));
+                  }
+                }
+              } else {
+                if (moves != null) {
+                  moves.add(new QuietMove(origin, target));
+                }
+                if (origin % 10 == (pawn.black() ? 7 : 2)) {
+                  int target2 = origin + 2 * direction;
+                  if (board.get(target2).equals(Square.EMPTY)) {
+                    if (moves != null) {
+                      moves.add(new DoubleStep(origin, target2, target));
                     }
                   }
                 }
@@ -277,7 +220,7 @@ class Pieces {
         }
       }
     }
-    return nChecks;
+    return nChecks == 0 ? 1 : -nChecks;
   }
 
   static String toLanCode(Piece piece) {
@@ -295,12 +238,12 @@ class Pieces {
     return new String(new char[]{(char) ('a' + square / 10 - 2), (char) ('1' + square % 10 - 1)});
   }
 
-  static void validate(List<Unit> board, Colour sideToMove, Set<Integer> castlingOrigins,
+  static void validate(List<Unit> board, boolean blackToMove, Set<Integer> castlingOrigins,
       Integer enPassantTarget) {
-    for (Colour value : Colour.values()) {
+    for (boolean value : new boolean[]{false, true}) {
       int frequency = 0;
       for (Unit unit : board) {
-        if (unit instanceof King(Colour colour) && colour == value) {
+        if (unit instanceof King(boolean black) && black == value) {
           frequency++;
         }
       }
@@ -312,99 +255,21 @@ class Pieces {
       int file = castlingOrigin / 10 - 1;
       int rank = castlingOrigin % 10;
       if (!(board.get(castlingOrigin) instanceof Piece piece && (file == 5 && piece instanceof King
-          || (file == 1 || file == 8) && piece instanceof Rook) && (
-          rank == 1 && piece.colour() == Colour.WHITE
-              || rank == 8 && piece.colour() == Colour.BLACK))) {
+          || (file == 1 || file == 8) && piece instanceof Rook) && (rank == 1 && !piece.black()
+          || rank == 8 && piece.black()))) {
         throw new IllegalArgumentException("Not accepted castling rights");
       }
     }
     if (enPassantTarget != null) {
-      int doubleStepOrigin = enPassantTarget + switch (sideToMove) {
-        case WHITE -> 1;
-        case BLACK -> -1;
-      };
-      int doubleStepTarget = enPassantTarget + switch (sideToMove) {
-        case WHITE -> -1;
-        case BLACK -> 1;
-      };
+      int doubleStepOrigin = enPassantTarget + (blackToMove ? -1 : 1);
+      int doubleStepTarget = enPassantTarget + (blackToMove ? 1 : -1);
       int doubleStepStop = enPassantTarget;
-      if (!(doubleStepStop % 10 == switch (sideToMove) {
-        case WHITE -> 6;
-        case BLACK -> 3;
-      } && board.get(doubleStepOrigin) == Square.EMPTY && board.get(doubleStepStop) == Square.EMPTY
-          && board.get(doubleStepTarget) instanceof Pawn(Colour colour) && colour != sideToMove)) {
+      if (!(doubleStepStop % 10 == (blackToMove ? 3 : 6)
+          && board.get(doubleStepOrigin) == Square.EMPTY
+          && board.get(doubleStepStop) == Square.EMPTY && board.get(
+          doubleStepTarget) instanceof Pawn(boolean black) && black != blackToMove)) {
         throw new IllegalArgumentException("Not accepted en passant square");
       }
     }
-  }
-
-  static String toFormatted(List<Unit> board, Colour sideToMove, Set<Integer> castlingOrigins,
-      Integer enPassantTarget, String operation) {
-    List<String> args = new ArrayList<>();
-    for (int rank = 8; rank >= 1; rank--) {
-      for (int file = 1; file <= 8; file++) {
-        if (board.get((file + 1) * 10 + rank) instanceof Piece piece) {
-          String code = switch (piece) {
-            case King _ -> "K";
-            case Queen _ -> "Q";
-            case Rook _ -> "R";
-            case Bishop _ -> "B";
-            case Knight _ -> "N";
-            case Pawn _ -> "P";
-          };
-          args.add(switch (piece.colour()) {
-            case WHITE -> code.toUpperCase();
-            case BLACK -> code.toLowerCase();
-          });
-        } else {
-          args.add(".");
-        }
-      }
-      switch (rank) {
-        case 8 -> args.add(switch (sideToMove) {
-          case WHITE -> "w";
-          case BLACK -> "b";
-        });
-        case 7 -> {
-          if (!castlingOrigins.isEmpty()) {
-            StringBuilder arg = new StringBuilder();
-            if (castlingOrigins.contains(61)) {
-              if (castlingOrigins.contains(91)) {
-                arg.append("K");
-              }
-              if (castlingOrigins.contains(21)) {
-                arg.append("Q");
-              }
-            }
-            if (castlingOrigins.contains(68)) {
-              if (castlingOrigins.contains(98)) {
-                arg.append("k");
-              }
-              if (castlingOrigins.contains(28)) {
-                arg.append("q");
-              }
-            }
-            args.add(arg.toString());
-          } else {
-            args.add("-");
-          }
-        }
-        case 6 -> {
-          if (enPassantTarget != null) {
-            args.add(new String(new char[]{(char) ('a' + enPassantTarget / 10 - 2),
-                (char) ('1' + enPassantTarget % 10 - 1)}));
-          } else {
-            args.add("-");
-          }
-        }
-        case 4 -> args.add(operation);
-      }
-    }
-    return ("8 %s %s %s %s %s %s %s %s    Side to move: %s%n"
-        + "7 %s %s %s %s %s %s %s %s    Castling rights: %s%n"
-        + "6 %s %s %s %s %s %s %s %s    En passant target: %s%n" + "5 %s %s %s %s %s %s %s %s%n"
-        + "4 %s %s %s %s %s %s %s %s    %s%n" + "3 %s %s %s %s %s %s %s %s%n"
-        + "2 %s %s %s %s %s %s %s %s%n" + "1 %s %s %s %s %s %s %s %s%n"
-        + "  a b c d e f g h").formatted(args.toArray());
   }
 }

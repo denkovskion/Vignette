@@ -30,7 +30,7 @@ import blog.art.chess.vignette.Moves.NullMove;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.StringJoiner;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 class Solver {
@@ -49,21 +49,8 @@ class Solver {
 
   }
 
-  static class Problem {
+  record Problem(Position position, Stipulation stipulation) {
 
-    private final Position position;
-    private final Stipulation stipulation;
-
-    Problem(Position position, Stipulation stipulation) {
-      this.position = position;
-      this.stipulation = stipulation;
-    }
-
-    @Override
-    public String toString() {
-      return new StringJoiner(", ", Problem.class.getSimpleName() + "[", "]").add(
-          "position=" + position).add("stipulation=" + stipulation).toString();
-    }
   }
 
   private record MateNode(Move move, int distance) {
@@ -71,16 +58,10 @@ class Solver {
   }
 
   static void solve(Problem problem) {
-    IO.println("_".repeat(42));
-    IO.println(Engine.toFormatted(problem.position, switch (problem.stipulation) {
-      case Perft(int nPlies) -> "Perft at depth %d".formatted(nPlies);
-      case MateSearch(int nMoves) -> "Mate in %d".formatted(nMoves);
-    }));
-    IO.println();
     LOGGER.info("Solving...");
     long begin = System.currentTimeMillis();
     List<Move> pseudoLegalMoves = new ArrayList<>();
-    if (Engine.isPositionLegal(problem.position, pseudoLegalMoves)) {
+    if (Engine.isLegal(problem.position, pseudoLegalMoves)) {
       switch (problem.stipulation) {
         case Perft(int nPlies) -> {
           long nNodes = count(nPlies, problem.position, pseudoLegalMoves);
@@ -89,11 +70,12 @@ class Solver {
         case MateSearch(int nMoves) -> {
           List<MateNode> nodes = new ArrayList<>();
           for (Move move : pseudoLegalMoves) {
-            Position positionMin = new Position(problem.position);
             List<Move> pseudoLegalMovesMin = new ArrayList<>();
-            if (Engine.makeMove(move, positionMin, pseudoLegalMovesMin, null)) {
+            Optional<Position> positionMin = Engine.makeMove(problem.position, move,
+                pseudoLegalMovesMin, null);
+            if (positionMin.isPresent()) {
               for (int depth = 1; depth <= nMoves; depth++) {
-                if (searchMin(depth, positionMin, pseudoLegalMovesMin)) {
+                if (searchMin(depth, positionMin.get(), pseudoLegalMovesMin)) {
                   nodes.add(new MateNode(move, depth));
                   break;
                 }
@@ -104,7 +86,7 @@ class Solver {
           List<String> lines = new ArrayList<>();
           for (MateNode node : nodes) {
             StringBuilder lanBuilder = new StringBuilder();
-            Engine.makeMove(node.move(), new Position(problem.position), null, lanBuilder);
+            Engine.makeMove(problem.position, node.move(), null, lanBuilder);
             lines.add("%s [#%d]".formatted(lanBuilder.toString(), node.distance()));
           }
           IO.println(String.join(System.lineSeparator(), lines));
@@ -123,10 +105,10 @@ class Solver {
     }
     long nNodes = 0;
     for (Move move : pseudoLegalMoves) {
-      Position positionNext = new Position(position);
       List<Move> pseudoLegalMovesNext = new ArrayList<>();
-      if (Engine.makeMove(move, positionNext, pseudoLegalMovesNext, null)) {
-        nNodes += count(nPlies - 1, positionNext, pseudoLegalMovesNext);
+      Optional<Position> positionNext = Engine.makeMove(position, move, pseudoLegalMovesNext, null);
+      if (positionNext.isPresent()) {
+        nNodes += count(nPlies - 1, positionNext.get(), pseudoLegalMovesNext);
       }
     }
     return nNodes;
@@ -135,10 +117,11 @@ class Solver {
   private static boolean searchMax(int nMoves, Position positionMax,
       List<Move> pseudoLegalMovesMax) {
     for (Move moveMax : pseudoLegalMovesMax) {
-      Position positionMin = new Position(positionMax);
       List<Move> pseudoLegalMovesMin = new ArrayList<>();
-      if (Engine.makeMove(moveMax, positionMin, pseudoLegalMovesMin, null)) {
-        if (searchMin(nMoves, positionMin, pseudoLegalMovesMin)) {
+      Optional<Position> positionMin = Engine.makeMove(positionMax, moveMax, pseudoLegalMovesMin,
+          null);
+      if (positionMin.isPresent()) {
+        if (searchMin(nMoves, positionMin.get(), pseudoLegalMovesMin)) {
           return true;
         }
       }
@@ -151,16 +134,17 @@ class Solver {
     boolean terminal = true;
     if (nMoves == 1) {
       for (Move moveMin : pseudoLegalMovesMin) {
-        if (Engine.makeMove(moveMin, new Position(positionMin), null, null)) {
+        if (Engine.makeMove(positionMin, moveMin, null, null).isPresent()) {
           return false;
         }
       }
     } else {
       for (Move moveMin : pseudoLegalMovesMin) {
-        Position positionMax = new Position(positionMin);
         List<Move> pseudoLegalMovesMax = new ArrayList<>();
-        if (Engine.makeMove(moveMin, positionMax, pseudoLegalMovesMax, null)) {
-          if (!searchMax(nMoves - 1, positionMax, pseudoLegalMovesMax)) {
+        Optional<Position> positionMax = Engine.makeMove(positionMin, moveMin, pseudoLegalMovesMax,
+            null);
+        if (positionMax.isPresent()) {
+          if (!searchMax(nMoves - 1, positionMax.get(), pseudoLegalMovesMax)) {
             return false;
           }
           terminal = false;
@@ -168,7 +152,7 @@ class Solver {
       }
     }
     if (terminal) {
-      return !Engine.makeMove(new NullMove(), new Position(positionMin), null, null);
+      return Engine.makeMove(positionMin, new NullMove(), null, null).isEmpty();
     }
     return true;
   }

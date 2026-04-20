@@ -34,13 +34,13 @@ import blog.art.chess.vignette.Moves.Promotion;
 import blog.art.chess.vignette.Moves.PromotionCapture;
 import blog.art.chess.vignette.Moves.QuietMove;
 import blog.art.chess.vignette.Moves.ShortCastling;
-import blog.art.chess.vignette.Pieces.Colour;
 import blog.art.chess.vignette.Pieces.Piece;
 import blog.art.chess.vignette.Pieces.Square;
 import blog.art.chess.vignette.Pieces.Unit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 
@@ -49,40 +49,56 @@ class Engine {
   static class Position {
 
     private final List<Unit> board;
-    private Colour sideToMove;
+    private boolean blackToMove;
     private final Set<Integer> castlingOrigins;
     private Integer enPassantTarget;
 
-    Position(List<Unit> board, Colour sideToMove, Set<Integer> castlingOrigins,
+    Position(List<Unit> board, boolean blackToMove, Set<Integer> castlingOrigins,
         Integer enPassantTarget) {
-      Pieces.validate(board, sideToMove, castlingOrigins, enPassantTarget);
+      Pieces.validate(board, blackToMove, castlingOrigins, enPassantTarget);
       this.board = new ArrayList<>(board);
-      this.sideToMove = sideToMove;
+      this.blackToMove = blackToMove;
       this.castlingOrigins = new HashSet<>(castlingOrigins);
       this.enPassantTarget = enPassantTarget;
     }
 
-    Position(Position other) {
+    private Position(Position other) {
       this.board = new ArrayList<>(other.board);
-      this.sideToMove = other.sideToMove;
+      this.blackToMove = other.blackToMove;
       this.castlingOrigins = new HashSet<>(other.castlingOrigins);
       this.enPassantTarget = other.enPassantTarget;
+    }
+
+    List<Unit> board() {
+      return board;
+    }
+
+    boolean blackToMove() {
+      return blackToMove;
+    }
+
+    Set<Integer> castlingOrigins() {
+      return castlingOrigins;
+    }
+
+    Integer enPassantTarget() {
+      return enPassantTarget;
     }
 
     @Override
     public String toString() {
       return new StringJoiner(", ", Position.class.getSimpleName() + "[", "]").add("board=" + board)
-          .add("sideToMove=" + sideToMove).add("castlingOrigins=" + castlingOrigins)
+          .add("blackToMove=" + blackToMove).add("castlingOrigins=" + castlingOrigins)
           .add("enPassantTarget=" + enPassantTarget).toString();
     }
   }
 
-  static boolean isPositionLegal(Position position, List<Move> pseudoLegalMoves) {
-    return Pieces.isKingInCheck(position.board, position.sideToMove, position.castlingOrigins,
-        position.enPassantTarget, pseudoLegalMoves, false) == 0;
+  static boolean isLegal(Position position, List<Move> pseudoLegalMoves) {
+    return Pieces.isLegal(position.board, position.blackToMove, position.castlingOrigins,
+        position.enPassantTarget, pseudoLegalMoves, false) == 1;
   }
 
-  static boolean makeMove(Move move, Position position, List<Move> pseudoLegalMoves,
+  static Optional<Position> makeMove(Position position, Move move, List<Move> pseudoLegalMoves,
       StringBuilder lanBuilder) {
     if (lanBuilder != null) {
       switch (move) {
@@ -115,16 +131,16 @@ class Engine {
     if (switch (move) {
       case NullMove(), QuietMove(_, _), Capture(_, _) -> true;
       case LongCastling(int origin, _, _, int target2) -> {
-        if (makeMove(new NullMove(), new Position(position), null, null)) {
-          if (makeMove(new QuietMove(origin, target2), new Position(position), null, null)) {
+        if (makeMove(position, new NullMove(), null, null).isPresent()) {
+          if (makeMove(position, new QuietMove(origin, target2), null, null).isPresent()) {
             yield true;
           }
         }
         yield false;
       }
       case ShortCastling(int origin, _, _, int target2) -> {
-        if (makeMove(new NullMove(), new Position(position), null, null)) {
-          if (makeMove(new QuietMove(origin, target2), new Position(position), null, null)) {
+        if (makeMove(position, new NullMove(), null, null).isPresent()) {
+          if (makeMove(position, new QuietMove(origin, target2), null, null).isPresent()) {
             yield true;
           }
         }
@@ -133,104 +149,97 @@ class Engine {
       case DoubleStep(_, _, _), EnPassant(_, _, _), Promotion(_, _, _), PromotionCapture(_, _, _) ->
           true;
     }) {
-      doMakeMove(move, position);
-      if (isPositionLegal(position, pseudoLegalMoves)) {
+      Position result = doMakeMove(position, move);
+      if (isLegal(result, pseudoLegalMoves)) {
         if (lanBuilder != null) {
           List<Move> pseudoLegalMovesNext = pseudoLegalMoves;
           if (pseudoLegalMovesNext == null) {
             pseudoLegalMovesNext = new ArrayList<>();
-            Pieces.isKingInCheck(position.board, position.sideToMove, position.castlingOrigins,
-                position.enPassantTarget, pseudoLegalMovesNext, true);
+            Pieces.isLegal(result.board, result.blackToMove, result.castlingOrigins,
+                result.enPassantTarget, pseudoLegalMovesNext, true);
           }
           boolean terminal = true;
           for (Move moveNext : pseudoLegalMovesNext) {
-            if (makeMove(moveNext, new Position(position), null, null)) {
+            if (makeMove(result, moveNext, null, null).isPresent()) {
               terminal = false;
               break;
             }
           }
-          Position opposite = new Position(position);
-          doMakeMove(new NullMove(), opposite);
-          int nChecks = Pieces.isKingInCheck(opposite.board, opposite.sideToMove,
-              opposite.castlingOrigins, opposite.enPassantTarget, null, true);
+          Position opposite = doMakeMove(result, new NullMove());
+          int legal = Pieces.isLegal(opposite.board, opposite.blackToMove, opposite.castlingOrigins,
+              opposite.enPassantTarget, null, true);
           if (terminal) {
-            if (nChecks > 0) {
-              if (nChecks > 1) {
-                lanBuilder.repeat("+", nChecks);
+            if (legal == 1) {
+              lanBuilder.append("=");
+            } else {
+              if (legal < -1) {
+                lanBuilder.repeat("+", -legal);
               }
               lanBuilder.append("#");
-            } else {
-              lanBuilder.append("=");
             }
           } else {
-            if (nChecks > 0) {
-              lanBuilder.repeat("+", nChecks);
+            if (legal < 0) {
+              lanBuilder.repeat("+", -legal);
             }
           }
         }
-        return true;
+        return Optional.of(result);
       }
     }
-    return false;
+    return Optional.empty();
   }
 
-  private static void doMakeMove(Move move, Position position) {
+  private static Position doMakeMove(Position position, Move move) {
+    Position result = new Position(position);
     switch (move) {
-      case NullMove() -> position.enPassantTarget = null;
+      case NullMove() -> result.enPassantTarget = null;
       case QuietMove(int origin, int target) -> {
-        position.board.set(target, position.board.set(origin, Square.EMPTY));
-        position.castlingOrigins.remove(origin);
-        position.enPassantTarget = null;
+        result.board.set(target, result.board.set(origin, Square.EMPTY));
+        result.castlingOrigins.remove(origin);
+        result.enPassantTarget = null;
       }
       case Capture(int origin, int target) -> {
-        position.board.set(target, position.board.set(origin, Square.EMPTY));
-        position.castlingOrigins.remove(origin);
-        position.castlingOrigins.remove(target);
-        position.enPassantTarget = null;
+        result.board.set(target, result.board.set(origin, Square.EMPTY));
+        result.castlingOrigins.remove(origin);
+        result.castlingOrigins.remove(target);
+        result.enPassantTarget = null;
       }
       case LongCastling(int origin, int target, int origin2, int target2) -> {
-        position.board.set(target, position.board.set(origin, Square.EMPTY));
-        position.board.set(target2, position.board.set(origin2, Square.EMPTY));
-        position.castlingOrigins.remove(origin);
-        position.castlingOrigins.remove(origin2);
-        position.enPassantTarget = null;
+        result.board.set(target, result.board.set(origin, Square.EMPTY));
+        result.board.set(target2, result.board.set(origin2, Square.EMPTY));
+        result.castlingOrigins.remove(origin);
+        result.castlingOrigins.remove(origin2);
+        result.enPassantTarget = null;
       }
       case ShortCastling(int origin, int target, int origin2, int target2) -> {
-        position.board.set(target, position.board.set(origin, Square.EMPTY));
-        position.board.set(target2, position.board.set(origin2, Square.EMPTY));
-        position.castlingOrigins.remove(origin);
-        position.castlingOrigins.remove(origin2);
-        position.enPassantTarget = null;
+        result.board.set(target, result.board.set(origin, Square.EMPTY));
+        result.board.set(target2, result.board.set(origin2, Square.EMPTY));
+        result.castlingOrigins.remove(origin);
+        result.castlingOrigins.remove(origin2);
+        result.enPassantTarget = null;
       }
       case DoubleStep(int origin, int target, int stop) -> {
-        position.board.set(target, position.board.set(origin, Square.EMPTY));
-        position.enPassantTarget = stop;
+        result.board.set(target, result.board.set(origin, Square.EMPTY));
+        result.enPassantTarget = stop;
       }
       case EnPassant(int origin, int target, int stop) -> {
-        position.board.set(stop, Square.EMPTY);
-        position.board.set(target, position.board.set(origin, Square.EMPTY));
-        position.enPassantTarget = null;
+        result.board.set(stop, Square.EMPTY);
+        result.board.set(target, result.board.set(origin, Square.EMPTY));
+        result.enPassantTarget = null;
       }
       case Promotion(int origin, int target, Piece promoted) -> {
-        position.board.set(origin, Square.EMPTY);
-        position.board.set(target, promoted);
-        position.enPassantTarget = null;
+        result.board.set(origin, Square.EMPTY);
+        result.board.set(target, promoted);
+        result.enPassantTarget = null;
       }
       case PromotionCapture(int origin, int target, Piece promoted) -> {
-        position.board.set(origin, Square.EMPTY);
-        position.board.set(target, promoted);
-        position.castlingOrigins.remove(target);
-        position.enPassantTarget = null;
+        result.board.set(origin, Square.EMPTY);
+        result.board.set(target, promoted);
+        result.castlingOrigins.remove(target);
+        result.enPassantTarget = null;
       }
     }
-    position.sideToMove = switch (position.sideToMove) {
-      case WHITE -> Colour.BLACK;
-      case BLACK -> Colour.WHITE;
-    };
-  }
-
-  static String toFormatted(Position position, String operation) {
-    return Pieces.toFormatted(position.board, position.sideToMove, position.castlingOrigins,
-        position.enPassantTarget, operation);
+    result.blackToMove = !result.blackToMove;
+    return result;
   }
 }
