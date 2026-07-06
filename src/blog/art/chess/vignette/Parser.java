@@ -161,10 +161,10 @@ class Parser {
     List<String> args = new ArrayList<>();
     for (int rank = 8; rank >= 1; rank--) {
       for (int file = 1; file <= 8; file++) {
-        Unit other = problem.position().board().get((file + 1) * 10 + rank);
-        if (other.equals(Square.EMPTY)) {
+        Unit unit = problem.position().board().get((file + 1) * 10 + rank);
+        if (unit.equals(Square.EMPTY)) {
           args.add(".");
-        } else if (other instanceof Piece piece) {
+        } else if (unit instanceof Piece piece) {
           String code = switch (piece) {
             case King _ -> "K";
             case Queen _ -> "Q";

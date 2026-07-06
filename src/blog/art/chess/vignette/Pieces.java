@@ -77,7 +77,7 @@ class Pieces {
 
   }
 
-  static int isLegal(List<Unit> board, boolean blackToMove, Set<Integer> castlingOrigins,
+  static int generateMoves(List<Unit> board, boolean blackToMove, Set<Integer> castlingOrigins,
       Integer enPassantTarget, List<Move> moves, boolean count) {
     int nChecks = 0;
     for (int origin = 0; origin < 120; origin++) {
@@ -261,13 +261,11 @@ class Pieces {
       }
     }
     if (enPassantTarget != null) {
-      int doubleStepOrigin = enPassantTarget + (blackToMove ? -1 : 1);
-      int doubleStepTarget = enPassantTarget + (blackToMove ? 1 : -1);
-      int doubleStepStop = enPassantTarget;
-      if (!(doubleStepStop % 10 == (blackToMove ? 3 : 6)
-          && board.get(doubleStepOrigin) == Square.EMPTY
-          && board.get(doubleStepStop) == Square.EMPTY && board.get(
-          doubleStepTarget) instanceof Pawn(boolean black) && black != blackToMove)) {
+      if (!(enPassantTarget % 10 == (blackToMove ? 3 : 6) && board.get(
+          enPassantTarget + (blackToMove ? -1 : 1)).equals(Square.EMPTY) && board.get(
+          enPassantTarget).equals(Square.EMPTY) && board.get(
+          enPassantTarget + (blackToMove ? 1 : -1)) instanceof Pawn(boolean black)
+          && black != blackToMove)) {
         throw new IllegalArgumentException("Not accepted en passant square");
       }
     }

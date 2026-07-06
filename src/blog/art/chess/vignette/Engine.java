@@ -94,40 +94,12 @@ class Engine {
   }
 
   static boolean isLegal(Position position, List<Move> pseudoLegalMoves) {
-    return Pieces.isLegal(position.board, position.blackToMove, position.castlingOrigins,
+    return Pieces.generateMoves(position.board, position.blackToMove, position.castlingOrigins,
         position.enPassantTarget, pseudoLegalMoves, false) == 1;
   }
 
   static Optional<Position> makeMove(Position position, Move move, List<Move> pseudoLegalMoves,
       StringBuilder lanBuilder) {
-    if (lanBuilder != null) {
-      switch (move) {
-        case NullMove() -> lanBuilder.append((String) null);
-        case QuietMove(int origin, int target) ->
-            lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
-                .append(Pieces.toLanCode(origin)).append("-").append(Pieces.toLanCode(target));
-        case Capture(int origin, int target) ->
-            lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
-                .append(Pieces.toLanCode(origin)).append("x").append(Pieces.toLanCode(target));
-        case LongCastling(_, _, _, _) -> lanBuilder.append("0-0-0");
-        case ShortCastling(_, _, _, _) -> lanBuilder.append("0-0");
-        case DoubleStep(int origin, int target, _) ->
-            lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
-                .append(Pieces.toLanCode(origin)).append("-").append(Pieces.toLanCode(target));
-        case EnPassant(int origin, int target, _) ->
-            lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
-                .append(Pieces.toLanCode(origin)).append("x").append(Pieces.toLanCode(target))
-                .append(" e.p.");
-        case Promotion(int origin, int target, Piece promoted) ->
-            lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
-                .append(Pieces.toLanCode(origin)).append("-").append(Pieces.toLanCode(target))
-                .append("=").append(Pieces.toLanCode(promoted));
-        case PromotionCapture(int origin, int target, Piece promoted) ->
-            lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
-                .append(Pieces.toLanCode(origin)).append("x").append(Pieces.toLanCode(target))
-                .append("=").append(Pieces.toLanCode(promoted));
-      }
-    }
     if (switch (move) {
       case NullMove(), QuietMove(_, _), Capture(_, _) -> true;
       case LongCastling(int origin, _, _, int target2) -> {
@@ -152,10 +124,36 @@ class Engine {
       Position result = doMakeMove(position, move);
       if (isLegal(result, pseudoLegalMoves)) {
         if (lanBuilder != null) {
+          switch (move) {
+            case NullMove() -> lanBuilder.append((String) null);
+            case QuietMove(int origin, int target) ->
+                lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
+                    .append(Pieces.toLanCode(origin)).append("-").append(Pieces.toLanCode(target));
+            case Capture(int origin, int target) ->
+                lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
+                    .append(Pieces.toLanCode(origin)).append("x").append(Pieces.toLanCode(target));
+            case LongCastling(_, _, _, _) -> lanBuilder.append("0-0-0");
+            case ShortCastling(_, _, _, _) -> lanBuilder.append("0-0");
+            case DoubleStep(int origin, int target, _) ->
+                lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
+                    .append(Pieces.toLanCode(origin)).append("-").append(Pieces.toLanCode(target));
+            case EnPassant(int origin, int target, _) ->
+                lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
+                    .append(Pieces.toLanCode(origin)).append("x").append(Pieces.toLanCode(target))
+                    .append(" e.p.");
+            case Promotion(int origin, int target, Piece promoted) ->
+                lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
+                    .append(Pieces.toLanCode(origin)).append("-").append(Pieces.toLanCode(target))
+                    .append("=").append(Pieces.toLanCode(promoted));
+            case PromotionCapture(int origin, int target, Piece promoted) ->
+                lanBuilder.append(Pieces.toLanCode((Piece) position.board.get(origin)))
+                    .append(Pieces.toLanCode(origin)).append("x").append(Pieces.toLanCode(target))
+                    .append("=").append(Pieces.toLanCode(promoted));
+          }
           List<Move> pseudoLegalMovesNext = pseudoLegalMoves;
           if (pseudoLegalMovesNext == null) {
             pseudoLegalMovesNext = new ArrayList<>();
-            Pieces.isLegal(result.board, result.blackToMove, result.castlingOrigins,
+            Pieces.generateMoves(result.board, result.blackToMove, result.castlingOrigins,
                 result.enPassantTarget, pseudoLegalMovesNext, true);
           }
           boolean terminal = true;
@@ -166,8 +164,8 @@ class Engine {
             }
           }
           Position opposite = doMakeMove(result, new NullMove());
-          int legal = Pieces.isLegal(opposite.board, opposite.blackToMove, opposite.castlingOrigins,
-              opposite.enPassantTarget, null, true);
+          int legal = Pieces.generateMoves(opposite.board, opposite.blackToMove,
+              opposite.castlingOrigins, opposite.enPassantTarget, null, true);
           if (terminal) {
             if (legal == 1) {
               lanBuilder.append("=");
