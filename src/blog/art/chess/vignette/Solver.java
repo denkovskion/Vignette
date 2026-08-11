@@ -28,32 +28,26 @@ import blog.art.chess.vignette.Engine.Position;
 import blog.art.chess.vignette.Moves.Move;
 import blog.art.chess.vignette.Moves.NullMove;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.logging.Logger;
 
 class Solver {
 
   private static final Logger LOGGER = Logger.getLogger(Solver.class.getName());
 
-  sealed interface Stipulation {
+  sealed interface Problem {
+
+    Position position();
+  }
+
+  record Perft(Position position, int nPlies) implements Problem {
 
   }
 
-  record Perft(int nPlies) implements Stipulation {
-
-  }
-
-  record MateSearch(int nMoves) implements Stipulation {
-
-  }
-
-  record Problem(Position position, Stipulation stipulation) {
-
-  }
-
-  private record MateNode(Move move, int distance) {
+  record MateSearch(Position position, int nMoves) implements Problem {
 
   }
 
@@ -61,33 +55,34 @@ class Solver {
     LOGGER.info("Solving...");
     long begin = System.currentTimeMillis();
     List<Move> pseudoLegalMoves = new ArrayList<>();
-    if (Engine.isLegal(problem.position, pseudoLegalMoves)) {
-      switch (problem.stipulation) {
-        case Perft(int nPlies) -> {
-          long nNodes = count(nPlies, problem.position, pseudoLegalMoves);
+    if (Engine.isLegal(problem.position(), pseudoLegalMoves)) {
+      switch (problem) {
+        case Perft(Position position, int nPlies) -> {
+          long nNodes = count(nPlies, position, pseudoLegalMoves);
           IO.println(nNodes);
         }
-        case MateSearch(int nMoves) -> {
-          List<MateNode> nodes = new ArrayList<>();
+        case MateSearch(Position position, int nMoves) -> {
+          Map<Integer, List<Move>> nodes = new TreeMap<>();
           for (Move move : pseudoLegalMoves) {
             List<Move> pseudoLegalMovesMin = new ArrayList<>();
-            Optional<Position> positionMin = Engine.makeMove(problem.position, move,
-                pseudoLegalMovesMin, null);
+            Optional<Position> positionMin = Engine.makeMove(position, move, pseudoLegalMovesMin,
+                null);
             if (positionMin.isPresent()) {
               for (int depth = 1; depth <= nMoves; depth++) {
                 if (searchMin(depth, positionMin.get(), pseudoLegalMovesMin)) {
-                  nodes.add(new MateNode(move, depth));
+                  nodes.computeIfAbsent(depth, _ -> new ArrayList<>()).add(move);
                   break;
                 }
               }
             }
           }
-          nodes.sort(Comparator.comparingInt(MateNode::distance));
           List<String> lines = new ArrayList<>();
-          for (MateNode node : nodes) {
-            StringBuilder lanBuilder = new StringBuilder();
-            Engine.makeMove(problem.position, node.move(), null, lanBuilder);
-            lines.add("%s [#%d]".formatted(lanBuilder.toString(), node.distance()));
+          for (Map.Entry<Integer, List<Move>> entry : nodes.entrySet()) {
+            for (Move move : entry.getValue()) {
+              StringBuilder lanBuilder = new StringBuilder();
+              Engine.makeMove(position, move, null, lanBuilder);
+              lines.add("%s [#%d]".formatted(lanBuilder.toString(), entry.getKey()));
+            }
           }
           IO.println(String.join(System.lineSeparator(), lines));
         }

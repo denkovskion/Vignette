@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.4] - 2026-08-11
+
+- Maintenance release
+
 ## [1.0.3] - 2026-07-06
 
 - Maintenance release

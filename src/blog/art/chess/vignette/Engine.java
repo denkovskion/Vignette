@@ -42,55 +42,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.StringJoiner;
 
 class Engine {
 
-  static class Position {
+  record Position(List<Unit> board, boolean blackToMove, Set<Integer> castlingOrigins,
+                  Integer enPassantTarget) {
 
-    private final List<Unit> board;
-    private boolean blackToMove;
-    private final Set<Integer> castlingOrigins;
-    private Integer enPassantTarget;
-
-    Position(List<Unit> board, boolean blackToMove, Set<Integer> castlingOrigins,
-        Integer enPassantTarget) {
-      Pieces.validate(board, blackToMove, castlingOrigins, enPassantTarget);
-      this.board = new ArrayList<>(board);
-      this.blackToMove = blackToMove;
-      this.castlingOrigins = new HashSet<>(castlingOrigins);
-      this.enPassantTarget = enPassantTarget;
-    }
-
-    private Position(Position other) {
-      this.board = new ArrayList<>(other.board);
-      this.blackToMove = other.blackToMove;
-      this.castlingOrigins = new HashSet<>(other.castlingOrigins);
-      this.enPassantTarget = other.enPassantTarget;
-    }
-
-    List<Unit> board() {
-      return board;
-    }
-
-    boolean blackToMove() {
-      return blackToMove;
-    }
-
-    Set<Integer> castlingOrigins() {
-      return castlingOrigins;
-    }
-
-    Integer enPassantTarget() {
-      return enPassantTarget;
-    }
-
-    @Override
-    public String toString() {
-      return new StringJoiner(", ", Position.class.getSimpleName() + "[", "]").add("board=" + board)
-          .add("blackToMove=" + blackToMove).add("castlingOrigins=" + castlingOrigins)
-          .add("enPassantTarget=" + enPassantTarget).toString();
-    }
   }
 
   static boolean isLegal(Position position, List<Move> pseudoLegalMoves) {
@@ -188,56 +145,52 @@ class Engine {
   }
 
   private static Position doMakeMove(Position position, Move move) {
-    Position result = new Position(position);
+    List<Unit> board = new ArrayList<>(position.board);
+    boolean blackToMove = !position.blackToMove;
+    Set<Integer> castlingOrigins = new HashSet<>(position.castlingOrigins);
+    Integer enPassantTarget = null;
     switch (move) {
-      case NullMove() -> result.enPassantTarget = null;
+      case NullMove() -> {
+      }
       case QuietMove(int origin, int target) -> {
-        result.board.set(target, result.board.set(origin, Square.EMPTY));
-        result.castlingOrigins.remove(origin);
-        result.enPassantTarget = null;
+        board.set(target, board.set(origin, Square.EMPTY));
+        castlingOrigins.remove(origin);
       }
       case Capture(int origin, int target) -> {
-        result.board.set(target, result.board.set(origin, Square.EMPTY));
-        result.castlingOrigins.remove(origin);
-        result.castlingOrigins.remove(target);
-        result.enPassantTarget = null;
+        board.set(target, board.set(origin, Square.EMPTY));
+        castlingOrigins.remove(origin);
+        castlingOrigins.remove(target);
       }
       case LongCastling(int origin, int target, int origin2, int target2) -> {
-        result.board.set(target, result.board.set(origin, Square.EMPTY));
-        result.board.set(target2, result.board.set(origin2, Square.EMPTY));
-        result.castlingOrigins.remove(origin);
-        result.castlingOrigins.remove(origin2);
-        result.enPassantTarget = null;
+        board.set(target, board.set(origin, Square.EMPTY));
+        board.set(target2, board.set(origin2, Square.EMPTY));
+        castlingOrigins.remove(origin);
+        castlingOrigins.remove(origin2);
       }
       case ShortCastling(int origin, int target, int origin2, int target2) -> {
-        result.board.set(target, result.board.set(origin, Square.EMPTY));
-        result.board.set(target2, result.board.set(origin2, Square.EMPTY));
-        result.castlingOrigins.remove(origin);
-        result.castlingOrigins.remove(origin2);
-        result.enPassantTarget = null;
+        board.set(target, board.set(origin, Square.EMPTY));
+        board.set(target2, board.set(origin2, Square.EMPTY));
+        castlingOrigins.remove(origin);
+        castlingOrigins.remove(origin2);
       }
       case DoubleStep(int origin, int target, int stop) -> {
-        result.board.set(target, result.board.set(origin, Square.EMPTY));
-        result.enPassantTarget = stop;
+        board.set(target, board.set(origin, Square.EMPTY));
+        enPassantTarget = stop;
       }
       case EnPassant(int origin, int target, int stop) -> {
-        result.board.set(stop, Square.EMPTY);
-        result.board.set(target, result.board.set(origin, Square.EMPTY));
-        result.enPassantTarget = null;
+        board.set(stop, Square.EMPTY);
+        board.set(target, board.set(origin, Square.EMPTY));
       }
       case Promotion(int origin, int target, Piece promoted) -> {
-        result.board.set(origin, Square.EMPTY);
-        result.board.set(target, promoted);
-        result.enPassantTarget = null;
+        board.set(origin, Square.EMPTY);
+        board.set(target, promoted);
       }
       case PromotionCapture(int origin, int target, Piece promoted) -> {
-        result.board.set(origin, Square.EMPTY);
-        result.board.set(target, promoted);
-        result.castlingOrigins.remove(target);
-        result.enPassantTarget = null;
+        board.set(origin, Square.EMPTY);
+        board.set(target, promoted);
+        castlingOrigins.remove(target);
       }
     }
-    result.blackToMove = !result.blackToMove;
-    return result;
+    return new Position(board, blackToMove, castlingOrigins, enPassantTarget);
   }
 }

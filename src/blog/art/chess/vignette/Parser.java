@@ -131,17 +131,19 @@ class Parser {
               fields.next("(0|[1-9]\\d*);");
               int nPlies = Integer.parseInt(fields.match().group(1));
               fields.skip("\\s*$");
+              Pieces.validate(board, blackToMove, castlingOrigins, enPassantTarget);
               problems.add(
-                  new Problem(new Position(board, blackToMove, castlingOrigins, enPassantTarget),
-                      new Perft(nPlies)));
+                  new Perft(new Position(board, blackToMove, castlingOrigins, enPassantTarget),
+                      nPlies));
             }
             case "dm" -> {
               fields.next("([1-9]\\d*);");
               int nMoves = Integer.parseInt(fields.match().group(1));
               fields.skip("\\s*$");
+              Pieces.validate(board, blackToMove, castlingOrigins, enPassantTarget);
               problems.add(
-                  new Problem(new Position(board, blackToMove, castlingOrigins, enPassantTarget),
-                      new MateSearch(nMoves)));
+                  new MateSearch(new Position(board, blackToMove, castlingOrigins, enPassantTarget),
+                      nMoves));
             }
           }
         } catch (IllegalArgumentException ex) {
@@ -211,9 +213,9 @@ class Parser {
             args.add("-");
           }
         }
-        case 4 -> args.add(switch (problem.stipulation()) {
-          case Perft(int nPlies) -> "Perft at depth %d".formatted(nPlies);
-          case MateSearch(int nMoves) -> "Mate in %d".formatted(nMoves);
+        case 4 -> args.add(switch (problem) {
+          case Perft(_, int nPlies) -> "Perft at depth %d".formatted(nPlies);
+          case MateSearch(_, int nMoves) -> "Mate in %d".formatted(nMoves);
         });
       }
     }
