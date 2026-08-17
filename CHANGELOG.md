@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0] - 2026-08-17
+
+### Added
+
+- Command-line option for detailed analysis
+- Command-line option for verbose logging
+
 ## [1.0.4] - 2026-08-11
 
 - Maintenance release

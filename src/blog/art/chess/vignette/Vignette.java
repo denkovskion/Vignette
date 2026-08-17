@@ -38,16 +38,22 @@ class Vignette {
     configureLogging();
     boolean help = false;
     boolean version = false;
+    boolean detailed = false;
+    boolean verbose = false;
     for (String arg : args) {
       switch (arg) {
         case "--help" -> help = true;
         case "--version" -> version = true;
+        case "--detailed" -> detailed = true;
+        case "--verbose" -> verbose = true;
         default -> {
-          if (arg.matches("-[hV]+")) {
+          if (arg.matches("-[hVdv]+")) {
             for (char letter : arg.substring(1).toCharArray()) {
               switch (letter) {
                 case 'h' -> help = true;
                 case 'V' -> version = true;
+                case 'd' -> detailed = true;
+                case 'v' -> verbose = true;
               }
             }
           } else {
@@ -61,8 +67,9 @@ class Vignette {
       System.out.printf("Usage:%n" + "  java -jar Vignette.jar [OPTIONS]%n%n"
           + "Chess mate searcher. Reads problems as EPD records (with one operation:%n"
           + "  dm for direct mate or acd for perft) until EOF, then solves them.%n%n" + "Options:%n"
-          + "  -h, --help       Show help and exit%n"
-          + "  -V, --version    Show version and exit%n");
+          + "  -h, --help       Show help and exit%n" + "  -V, --version    Show version and exit%n"
+          + "  -d, --detailed   Enable detailed analysis%n"
+          + "  -v, --verbose    Enable verbose logging%n");
       System.exit(0);
     }
     if (version) {
@@ -73,8 +80,7 @@ class Vignette {
     LOGGER.info("Vignette %s Copyright (c) 2026 Ivan Denkovski".formatted(getVersion()));
     List<Problem> problems = Parser.readAllProblems();
     for (Problem problem : problems) {
-      Parser.write(problem);
-      Solver.solve(problem);
+      Solver.solve(problem, detailed, verbose);
     }
   }
 
@@ -92,9 +98,15 @@ class Vignette {
 
   private static void configureLogging() {
     Logger root = Logger.getLogger("");
-    root.setLevel(Level.INFO);
+    Package pkg = Vignette.class.getPackage();
+    if (pkg != null) {
+      root.setLevel(Level.INFO);
+      Logger.getLogger(pkg.getName()).setLevel(Level.FINE);
+    } else {
+      root.setLevel(Level.FINE);
+    }
     for (Handler handler : root.getHandlers()) {
-      handler.setLevel(Level.INFO);
+      handler.setLevel(Level.FINE);
     }
   }
 }

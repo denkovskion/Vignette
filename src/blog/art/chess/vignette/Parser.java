@@ -158,8 +158,7 @@ class Parser {
     return problems;
   }
 
-  static void write(Problem problem) {
-    IO.println("_".repeat(42));
+  static String formatToString(Problem problem) {
     List<String> args = new ArrayList<>();
     for (int rank = 8; rank >= 1; rank--) {
       for (int file = 1; file <= 8; file++) {
@@ -219,12 +218,11 @@ class Parser {
         });
       }
     }
-    IO.println(("8 %s %s %s %s %s %s %s %s    Side to move: %s%n"
+    return ("8 %s %s %s %s %s %s %s %s    Side to move: %s%n"
         + "7 %s %s %s %s %s %s %s %s    Castling rights: %s%n"
         + "6 %s %s %s %s %s %s %s %s    En passant target: %s%n" + "5 %s %s %s %s %s %s %s %s%n"
         + "4 %s %s %s %s %s %s %s %s    %s%n" + "3 %s %s %s %s %s %s %s %s%n"
         + "2 %s %s %s %s %s %s %s %s%n" + "1 %s %s %s %s %s %s %s %s%n"
-        + "  a b c d e f g h").formatted(args.toArray()));
-    IO.println();
+        + "  a b c d e f g h").formatted(args.toArray());
   }
 }
