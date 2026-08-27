@@ -24,7 +24,7 @@
 
 package blog.art.chess.vignette;
 
-import blog.art.chess.vignette.Solver.Problem;
+import blog.art.chess.vignette.Problems.Problem;
 import java.util.List;
 import java.util.logging.Handler;
 import java.util.logging.Level;

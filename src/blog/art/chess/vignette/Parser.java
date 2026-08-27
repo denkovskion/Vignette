@@ -24,8 +24,8 @@
 
 package blog.art.chess.vignette;
 
-import blog.art.chess.vignette.Engine.Position;
 import blog.art.chess.vignette.Pieces.Bishop;
+import blog.art.chess.vignette.Pieces.Colour;
 import blog.art.chess.vignette.Pieces.King;
 import blog.art.chess.vignette.Pieces.Knight;
 import blog.art.chess.vignette.Pieces.Pawn;
@@ -34,9 +34,9 @@ import blog.art.chess.vignette.Pieces.Queen;
 import blog.art.chess.vignette.Pieces.Rook;
 import blog.art.chess.vignette.Pieces.Square;
 import blog.art.chess.vignette.Pieces.Unit;
-import blog.art.chess.vignette.Solver.MateSearch;
-import blog.art.chess.vignette.Solver.Perft;
-import blog.art.chess.vignette.Solver.Problem;
+import blog.art.chess.vignette.Problems.MateSearch;
+import blog.art.chess.vignette.Problems.Perft;
+import blog.art.chess.vignette.Problems.Problem;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -75,29 +75,27 @@ class Parser {
                 String letter = characters.next("[KQRBNPkqrbnp]");
                 int square = (file + 1) * 10 + rank;
                 switch (letter) {
-                  case "K" -> board.set(square, new King(false));
-                  case "Q" -> board.set(square, new Queen(false));
-                  case "R" -> board.set(square, new Rook(false));
-                  case "B" -> board.set(square, new Bishop(false));
-                  case "N" -> board.set(square, new Knight(false));
-                  case "P" -> board.set(square, new Pawn(false));
-                  case "k" -> board.set(square, new King(true));
-                  case "q" -> board.set(square, new Queen(true));
-                  case "r" -> board.set(square, new Rook(true));
-                  case "b" -> board.set(square, new Bishop(true));
-                  case "n" -> board.set(square, new Knight(true));
-                  case "p" -> board.set(square, new Pawn(true));
+                  case "K" -> board.set(square, new King(Colour.WHITE));
+                  case "Q" -> board.set(square, new Queen(Colour.WHITE));
+                  case "R" -> board.set(square, new Rook(Colour.WHITE));
+                  case "B" -> board.set(square, new Bishop(Colour.WHITE));
+                  case "N" -> board.set(square, new Knight(Colour.WHITE));
+                  case "P" -> board.set(square, new Pawn(Colour.WHITE));
+                  case "k" -> board.set(square, new King(Colour.BLACK));
+                  case "q" -> board.set(square, new Queen(Colour.BLACK));
+                  case "r" -> board.set(square, new Rook(Colour.BLACK));
+                  case "b" -> board.set(square, new Bishop(Colour.BLACK));
+                  case "n" -> board.set(square, new Knight(Colour.BLACK));
+                  case "p" -> board.set(square, new Pawn(Colour.BLACK));
                 }
               }
               characters.skip(rank > 1 ? "/" : "$");
             }
           }
-          boolean blackToMove = false;
-          if (fields.hasNext("w")) {
-            fields.next();
-          } else {
-            fields.next("b");
-            blackToMove = true;
+          Colour sideToMove = null;
+          switch (fields.next("[wb]")) {
+            case "w" -> sideToMove = Colour.WHITE;
+            case "b" -> sideToMove = Colour.BLACK;
           }
           Set<Integer> castlingOrigins = new HashSet<>();
           if (fields.hasNext("-")) {
@@ -131,19 +129,16 @@ class Parser {
               fields.next("(0|[1-9]\\d*);");
               int nPlies = Integer.parseInt(fields.match().group(1));
               fields.skip("\\s*$");
-              Pieces.validate(board, blackToMove, castlingOrigins, enPassantTarget);
               problems.add(
-                  new Perft(new Position(board, blackToMove, castlingOrigins, enPassantTarget),
+                  new Perft(Engine.newPosition(board, sideToMove, castlingOrigins, enPassantTarget),
                       nPlies));
             }
             case "dm" -> {
               fields.next("([1-9]\\d*);");
               int nMoves = Integer.parseInt(fields.match().group(1));
               fields.skip("\\s*$");
-              Pieces.validate(board, blackToMove, castlingOrigins, enPassantTarget);
-              problems.add(
-                  new MateSearch(new Position(board, blackToMove, castlingOrigins, enPassantTarget),
-                      nMoves));
+              problems.add(new MateSearch(
+                  Engine.newPosition(board, sideToMove, castlingOrigins, enPassantTarget), nMoves));
             }
           }
         } catch (IllegalArgumentException ex) {
@@ -174,11 +169,17 @@ class Parser {
             case Knight _ -> "N";
             case Pawn _ -> "P";
           };
-          args.add(piece.black() ? code.toLowerCase() : code.toUpperCase());
+          args.add(switch (piece.colour()) {
+            case WHITE -> code.toUpperCase();
+            case BLACK -> code.toLowerCase();
+          });
         }
       }
       switch (rank) {
-        case 8 -> args.add(problem.position().blackToMove() ? "b" : "w");
+        case 8 -> args.add(switch (problem.position().sideToMove()) {
+          case WHITE -> "w";
+          case BLACK -> "b";
+        });
         case 7 -> {
           if (!problem.position().castlingOrigins().isEmpty()) {
             StringBuilder arg = new StringBuilder();

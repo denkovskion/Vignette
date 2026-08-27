@@ -24,7 +24,6 @@
 
 package blog.art.chess.vignette;
 
-import blog.art.chess.vignette.Engine.Position;
 import blog.art.chess.vignette.Moves.Move;
 import java.util.List;
 
@@ -60,62 +59,5 @@ class Nodes {
 
   record IllegalNode() implements Node {
 
-  }
-
-  static String formatToString(Node node, Position position, int moveNo, boolean inline) {
-    StringBuilder output = new StringBuilder();
-    switch (node) {
-      case DivideRoot(long count, List<Node> children) -> {
-        for (Node child : children) {
-          output.append(formatToString(child, position, moveNo, false));
-          output.append(System.lineSeparator());
-        }
-        output.append(count);
-      }
-      case DivideLeaf(Move move, long count) -> {
-        Engine.makeMove(position, move, null, output);
-        output.append(" ").append(count);
-      }
-      case PerftNode(long count) -> output.append(count);
-      case MateRoot(List<Node> children) -> {
-        boolean first = true;
-        for (Node child : children) {
-          if (!first) {
-            output.append(System.lineSeparator());
-          }
-          output.append(formatToString(child, position, moveNo, false));
-          first = false;
-        }
-      }
-      case MateBranch(Move move, _, List<Node> children) -> {
-        if (position.blackToMove()) {
-          if (!inline) {
-            output.append(moveNo).append("...");
-          }
-        } else {
-          output.append(moveNo).append(".");
-        }
-        Position positionNext = Engine.makeMove(position, move, null, output).orElseThrow();
-        boolean first = true;
-        for (Node child : children) {
-          if (first) {
-            output.append(" ");
-          } else {
-            output.append(System.lineSeparator())
-                .repeat("\t", positionNext.blackToMove() ? moveNo - 1 : moveNo);
-          }
-          output.append(
-              formatToString(child, positionNext, positionNext.blackToMove() ? moveNo : moveNo + 1,
-                  first));
-          first = false;
-        }
-      }
-      case MateLeaf(Move move, int distance) -> {
-        Engine.makeMove(position, move, null, output);
-        output.append(" [#").append(distance).append("]");
-      }
-      case IllegalNode() -> output.append("Illegal position");
-    }
-    return output.toString();
   }
 }

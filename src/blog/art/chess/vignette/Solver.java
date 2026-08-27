@@ -24,7 +24,6 @@
 
 package blog.art.chess.vignette;
 
-import blog.art.chess.vignette.Engine.Position;
 import blog.art.chess.vignette.Moves.Move;
 import blog.art.chess.vignette.Moves.NullMove;
 import blog.art.chess.vignette.Nodes.DivideLeaf;
@@ -35,6 +34,9 @@ import blog.art.chess.vignette.Nodes.MateLeaf;
 import blog.art.chess.vignette.Nodes.MateRoot;
 import blog.art.chess.vignette.Nodes.Node;
 import blog.art.chess.vignette.Nodes.PerftNode;
+import blog.art.chess.vignette.Problems.MateSearch;
+import blog.art.chess.vignette.Problems.Perft;
+import blog.art.chess.vignette.Problems.Problem;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -44,19 +46,6 @@ import java.util.logging.Logger;
 class Solver {
 
   private static final Logger LOGGER = Logger.getLogger(Solver.class.getName());
-
-  sealed interface Problem {
-
-    Position position();
-  }
-
-  record Perft(Position position, int nPlies) implements Problem {
-
-  }
-
-  record MateSearch(Position position, int nMoves) implements Problem {
-
-  }
 
   static void solve(Problem problem, boolean detailed, boolean verbose) {
     IO.println("_".repeat(42));
@@ -81,7 +70,7 @@ class Solver {
     } else {
       solution = new IllegalNode();
     }
-    IO.println(Nodes.formatToString(solution, problem.position(), 1, false));
+    IO.println(formatToString(solution, problem.position(), 1, false));
     long end = System.currentTimeMillis();
     LOGGER.info("Finished solving in %dms.".formatted(end - begin));
   }
@@ -236,5 +225,66 @@ class Solver {
           : detailed ? nMoves : 1;
     }
     return min;
+  }
+
+  private static String formatToString(Node node, Position position, int moveNo, boolean inline) {
+    StringBuilder output = new StringBuilder();
+    switch (node) {
+      case DivideRoot(long count, List<Node> children) -> {
+        for (Node child : children) {
+          output.append(formatToString(child, position, moveNo, false));
+          output.append(System.lineSeparator());
+        }
+        output.append(count);
+      }
+      case DivideLeaf(Move move, long count) -> {
+        Engine.makeMove(position, move, null, output);
+        output.append(" ").append(count);
+      }
+      case PerftNode(long count) -> output.append(count);
+      case MateRoot(List<Node> children) -> {
+        boolean first = true;
+        for (Node child : children) {
+          if (!first) {
+            output.append(System.lineSeparator());
+          }
+          output.append(formatToString(child, position, moveNo, false));
+          first = false;
+        }
+      }
+      case MateBranch(Move move, _, List<Node> children) -> {
+        switch (position.sideToMove()) {
+          case WHITE -> output.append(moveNo).append(".");
+          case BLACK -> {
+            if (!inline) {
+              output.append(moveNo).append("...");
+            }
+          }
+        }
+        Position positionNext = Engine.makeMove(position, move, null, output).orElseThrow();
+        boolean first = true;
+        for (Node child : children) {
+          if (first) {
+            output.append(" ");
+          } else {
+            output.append(System.lineSeparator()).repeat("\t", switch (positionNext.sideToMove()) {
+              case WHITE -> moveNo;
+              case BLACK -> moveNo - 1;
+            });
+          }
+          output.append(formatToString(child, positionNext, switch (positionNext.sideToMove()) {
+            case WHITE -> moveNo + 1;
+            case BLACK -> moveNo;
+          }, first));
+          first = false;
+        }
+      }
+      case MateLeaf(Move move, int distance) -> {
+        Engine.makeMove(position, move, null, output);
+        output.append(" [#").append(distance).append("]");
+      }
+      case IllegalNode() -> output.append("Illegal position");
+    }
+    return output.toString();
   }
 }
