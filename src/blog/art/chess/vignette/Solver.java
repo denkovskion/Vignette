@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 class Solver {
@@ -51,7 +52,7 @@ class Solver {
     IO.println("_".repeat(42));
     IO.println(Parser.formatToString(problem));
     IO.println();
-    LOGGER.info(detailed ? "Solving with analysis..." : "Solving...");
+    LOGGER.log(Level.INFO, detailed ? "Solving with analysis..." : "Solving...");
     long begin = System.currentTimeMillis();
     Node solution;
     List<Move> pseudoLegalMoves = new ArrayList<>();
@@ -72,7 +73,7 @@ class Solver {
     }
     IO.println(formatToString(solution, problem.position(), 1, false));
     long end = System.currentTimeMillis();
-    LOGGER.info("Finished solving in %dms.".formatted(end - begin));
+    LOGGER.log(Level.INFO, "Finished solving in {0,number,0}ms.", end - begin);
   }
 
   private static long count(Position position, int nPlies, List<Move> pseudoLegalMoves,
@@ -93,14 +94,15 @@ class Solver {
         }
         nNodes += nChildNodes;
         if (verbose) {
-          LOGGER.fine(
-              "Evaluated '%s'. Counted %d nodes at depth %d.".formatted(lanBuilder, nChildNodes,
-                  nPlies));
+          LOGGER.log(Level.FINE,
+              "Evaluated ''{0}''. Counted {1,number,0} nodes at depth {2,number,0}.",
+              new Object[]{lanBuilder.toString(), nChildNodes, nPlies});
         }
       }
     }
     if (verbose) {
-      LOGGER.fine("Finished counting. %d nodes at depth %d.".formatted(nNodes, nPlies));
+      LOGGER.log(Level.FINE, "Finished counting. {0,number,0} nodes at depth {1,number,0}.",
+          new Object[]{nNodes, nPlies});
     }
     return nNodes;
   }
@@ -119,7 +121,8 @@ class Solver {
           if (min > 0) {
             int distanceMax = nMoves - min + 1;
             if (verbose) {
-              LOGGER.fine("Tried '%s'. Found mate in %d.".formatted(lanBuilder, distanceMax));
+              LOGGER.log(Level.FINE, "Tried ''{0}''. Found mate in {1,number,0}.",
+                  new Object[]{lanBuilder.toString(), distanceMax});
             }
             List<Node> nodesMin = new ArrayList<>();
             for (Move moveMin : pseudoLegalMovesMin) {
@@ -138,11 +141,12 @@ class Solver {
                 Comparator.comparingInt(node -> ((MateBranch) node).distance()).reversed());
             nodes.add(new MateBranch(moveMax, distanceMax, nodesMin));
             if (verbose) {
-              LOGGER.fine("Finished analysis of '%s'.".formatted(lanBuilder));
+              LOGGER.log(Level.FINE, "Finished analysis of ''{0}''.", lanBuilder.toString());
             }
           } else {
             if (verbose) {
-              LOGGER.fine("Tried '%s'. No mate in %d.".formatted(lanBuilder, nMoves));
+              LOGGER.log(Level.FINE, "Tried ''{0}''. No mate in {1,number,0}.",
+                  new Object[]{lanBuilder.toString(), nMoves});
             }
           }
         }
@@ -163,9 +167,13 @@ class Solver {
             }
           }
           if (verbose) {
-            LOGGER.fine(
-                depth <= nMoves ? "Tried '%s'. Found mate in %d.".formatted(lanBuilder, depth)
-                    : "Tried '%s'. No mate in %d.".formatted(lanBuilder, nMoves));
+            if (depth <= nMoves) {
+              LOGGER.log(Level.FINE, "Tried ''{0}''. Found mate in {1,number,0}.",
+                  new Object[]{lanBuilder.toString(), depth});
+            } else {
+              LOGGER.log(Level.FINE, "Tried ''{0}''. No mate in {1,number,0}.",
+                  new Object[]{lanBuilder.toString(), nMoves});
+            }
           }
         }
       }

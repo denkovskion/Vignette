@@ -57,7 +57,7 @@ class Vignette {
               }
             }
           } else {
-            LOGGER.warning("Invalid argument: '%s'.".formatted(arg));
+            LOGGER.log(Level.WARNING, "Invalid argument: ''{0}''.", arg);
             System.exit(1);
           }
         }
@@ -77,7 +77,7 @@ class Vignette {
           getVersion());
       System.exit(0);
     }
-    LOGGER.info("Vignette %s Copyright (c) 2026 Ivan Denkovski".formatted(getVersion()));
+    LOGGER.log(Level.INFO, "Vignette {0} Copyright (c) 2026 Ivan Denkovski", getVersion());
     List<Problem> problems = Parser.readAllProblems();
     for (Problem problem : problems) {
       Solver.solve(problem, detailed, verbose);

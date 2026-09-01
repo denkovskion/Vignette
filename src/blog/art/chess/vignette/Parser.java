@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.MatchResult;
 
@@ -142,10 +143,11 @@ class Parser {
             }
           }
         } catch (IllegalArgumentException ex) {
-          LOGGER.warning("Not accepted line: '%s'. %s.".formatted(line, ex.getMessage()));
+          LOGGER.log(Level.WARNING, "Not accepted line: ''{0}''. {1}.",
+              new Object[]{line, ex.getMessage()});
           return List.of();
         } catch (NoSuchElementException _) {
-          LOGGER.warning("Invalid line: '%s'.".formatted(line));
+          LOGGER.log(Level.WARNING, "Invalid line: ''{0}''.", line);
           return List.of();
         }
       }

@@ -59,7 +59,8 @@ class Engine {
   }
 
   private static int generateMoves(List<Unit> board, Colour sideToMove,
-      Set<Integer> castlingOrigins, Integer enPassantTarget, List<Move> moves, boolean count) {
+      Set<Integer> castlingOrigins, Integer enPassantTarget, List<Move> moves,
+      boolean countChecks) {
     int nChecks = 0;
     for (int origin = 0; origin < 120; origin++) {
       if (board.get(origin) instanceof Piece piece && piece.colour() == sideToMove) {
@@ -85,7 +86,7 @@ class Engine {
                 } else {
                   if (other instanceof Piece captured && captured.colour() != category.colour()) {
                     if (captured instanceof King) {
-                      if (count) {
+                      if (countChecks) {
                         nChecks++;
                       } else {
                         return 0;
@@ -154,7 +155,7 @@ class Engine {
                 }
               } else if (other instanceof Piece captured && captured.colour() != pawn.colour()) {
                 if (captured instanceof King) {
-                  if (count) {
+                  if (countChecks) {
                     nChecks++;
                   } else {
                     return 0;
