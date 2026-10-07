@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.3] - 2026-10-07
+
+- Maintenance release
+- Alignment release
+
 ## [1.1.2] - 2026-09-01
 
 - Maintenance release

@@ -24,28 +24,24 @@ end-of-file, then solves them and writes solutions to standard output.
 
 ## Example
 
-> Sam Loyd, Bradford Courier 1878
+> Fritz Giegold, Die Welt 1978
 
 ### Input
 
 ```
-8/8/8/1R6/8/kBp1p3/1qQ4K/1nBn4 w - - dm 2;
+8/8/4p3/2P1k1p1/pPp1P3/B1Pp2p1/P2P2B1/R3KR2 w Q - dm 5;
 ```
 
 ### Output (default)
 
 ```
-Qc2-g2 [#2]
+Ra1-c1 [#5]
 ```
 
 ### Output with `--detailed`
 
 ```
-1.Qc2-g2 Nb1-d2 2.Qg2-a8#
-1...Qb2xc1 2.Qg2-a2#
-1...c3-c2 2.Qg2-a8#
-1...Nd1-f2 2.Qg2-a8#
-1...e3-e2 2.Qg2-a8#
+1.Ra1-c1 g5-g4 2.Rc1-c2 d3xc2 3.Ba3-c1 a4-a3 4.Rf1-f4 Ke5xf4 5.d2-d4#
 ```
 
 ## Author

@@ -54,8 +54,9 @@ class Parser {
   static List<Problem> readAllProblems() {
     List<Problem> problems = new ArrayList<>();
     for (String line; (line = IO.readln()) != null; ) {
-      if (!line.isBlank()) {
-        try (Scanner fields = new Scanner(line)) {
+      try {
+        Scanner fields = new Scanner(line);
+        if (fields.hasNext()) {
           List<Unit> board = new ArrayList<>();
           for (int square = 0; square < 120; square++) {
             int file = square / 10 - 1;
@@ -63,35 +64,33 @@ class Parser {
             board.add(
                 file >= 1 && file <= 8 && rank >= 1 && rank <= 8 ? Square.EMPTY : Square.BORDER);
           }
-          try (Scanner characters = new Scanner(fields.next())) {
-            characters.useDelimiter("");
-            for (int rank = 8; rank >= 1; rank--) {
-              for (int file = 1; file <= 8; file++) {
-                if (characters.hasNext("[" + "12345678".substring(0, 8 - (file - 1)) + "]")) {
-                  file += characters.nextInt();
-                  if (file > 8) {
-                    break;
-                  }
-                }
-                String letter = characters.next("[KQRBNPkqrbnp]");
-                int square = (file + 1) * 10 + rank;
-                switch (letter) {
-                  case "K" -> board.set(square, new King(Colour.WHITE));
-                  case "Q" -> board.set(square, new Queen(Colour.WHITE));
-                  case "R" -> board.set(square, new Rook(Colour.WHITE));
-                  case "B" -> board.set(square, new Bishop(Colour.WHITE));
-                  case "N" -> board.set(square, new Knight(Colour.WHITE));
-                  case "P" -> board.set(square, new Pawn(Colour.WHITE));
-                  case "k" -> board.set(square, new King(Colour.BLACK));
-                  case "q" -> board.set(square, new Queen(Colour.BLACK));
-                  case "r" -> board.set(square, new Rook(Colour.BLACK));
-                  case "b" -> board.set(square, new Bishop(Colour.BLACK));
-                  case "n" -> board.set(square, new Knight(Colour.BLACK));
-                  case "p" -> board.set(square, new Pawn(Colour.BLACK));
+          Scanner characters = new Scanner(fields.next()).useDelimiter("");
+          for (int rank = 8; rank >= 1; rank--) {
+            for (int file = 1; file <= 8; file++) {
+              if (characters.hasNext("[" + "12345678".substring(0, 8 - (file - 1)) + "]")) {
+                file += characters.nextInt();
+                if (file > 8) {
+                  break;
                 }
               }
-              characters.skip(rank > 1 ? "/" : "$");
+              String letter = characters.next("[KQRBNPkqrbnp]");
+              int square = (file + 1) * 10 + rank;
+              switch (letter) {
+                case "K" -> board.set(square, new King(Colour.WHITE));
+                case "Q" -> board.set(square, new Queen(Colour.WHITE));
+                case "R" -> board.set(square, new Rook(Colour.WHITE));
+                case "B" -> board.set(square, new Bishop(Colour.WHITE));
+                case "N" -> board.set(square, new Knight(Colour.WHITE));
+                case "P" -> board.set(square, new Pawn(Colour.WHITE));
+                case "k" -> board.set(square, new King(Colour.BLACK));
+                case "q" -> board.set(square, new Queen(Colour.BLACK));
+                case "r" -> board.set(square, new Rook(Colour.BLACK));
+                case "b" -> board.set(square, new Bishop(Colour.BLACK));
+                case "n" -> board.set(square, new Knight(Colour.BLACK));
+                case "p" -> board.set(square, new Pawn(Colour.BLACK));
+              }
             }
+            characters.skip(rank > 1 ? "/" : "$");
           }
           Colour sideToMove = null;
           switch (fields.next("[wb]")) {
@@ -142,14 +141,14 @@ class Parser {
                   Engine.newPosition(board, sideToMove, castlingOrigins, enPassantTarget), nMoves));
             }
           }
-        } catch (IllegalArgumentException ex) {
-          LOGGER.log(Level.WARNING, "Not accepted line: ''{0}''. {1}.",
-              new Object[]{line, ex.getMessage()});
-          return List.of();
-        } catch (NoSuchElementException _) {
-          LOGGER.log(Level.WARNING, "Invalid line: ''{0}''.", line);
-          return List.of();
         }
+      } catch (IllegalArgumentException ex) {
+        LOGGER.log(Level.WARNING, "Not accepted line: ''{0}''. {1}.",
+            new Object[]{line, ex.getMessage()});
+        return List.of();
+      } catch (NoSuchElementException _) {
+        LOGGER.log(Level.WARNING, "Invalid line: ''{0}''.", line);
+        return List.of();
       }
     }
     return problems;

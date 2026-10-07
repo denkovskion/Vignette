@@ -56,7 +56,7 @@ class Solver {
     long begin = System.currentTimeMillis();
     Node solution;
     List<Move> pseudoLegalMoves = new ArrayList<>();
-    if (Engine.isLegal(problem.position(), pseudoLegalMoves)) {
+    if (Engine.isPositionLegal(problem.position(), pseudoLegalMoves)) {
       switch (problem) {
         case Perft(Position position, int nPlies) -> {
           List<Node> nodes = detailed ? new ArrayList<>() : null;

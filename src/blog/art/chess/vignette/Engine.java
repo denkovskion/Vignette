@@ -53,7 +53,7 @@ import java.util.Set;
 
 class Engine {
 
-  static boolean isLegal(Position position, List<Move> pseudoLegalMoves) {
+  static boolean isPositionLegal(Position position, List<Move> pseudoLegalMoves) {
     return generateMoves(position.board(), position.sideToMove(), position.castlingOrigins(),
         position.enPassantTarget(), pseudoLegalMoves, false) == 1;
   }
@@ -244,7 +244,7 @@ class Engine {
           true;
     }) {
       Position result = makeMove(position, move);
-      if (isLegal(result, pseudoLegalMoves)) {
+      if (isPositionLegal(result, pseudoLegalMoves)) {
         if (lanBuilder != null) {
           switch (move) {
             case NullMove() -> lanBuilder.append((String) null);
