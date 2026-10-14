@@ -24,18 +24,4 @@
 
 package blog.art.chess.vignette;
 
-class Problems {
-
-  sealed interface Problem {
-
-    Position position();
-  }
-
-  record Perft(Position position, int nPlies) implements Problem {
-
-  }
-
-  record MateSearch(Position position, int nMoves) implements Problem {
-
-  }
-}
+public enum Colour {WHITE, BLACK}

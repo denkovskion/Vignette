@@ -24,19 +24,16 @@
 
 package blog.art.chess.vignette;
 
-import blog.art.chess.vignette.Moves.Move;
-import blog.art.chess.vignette.Moves.NullMove;
-import blog.art.chess.vignette.Nodes.DivideLeaf;
-import blog.art.chess.vignette.Nodes.DivideRoot;
-import blog.art.chess.vignette.Nodes.IllegalNode;
-import blog.art.chess.vignette.Nodes.MateBranch;
-import blog.art.chess.vignette.Nodes.MateLeaf;
-import blog.art.chess.vignette.Nodes.MateRoot;
-import blog.art.chess.vignette.Nodes.Node;
-import blog.art.chess.vignette.Nodes.PerftNode;
-import blog.art.chess.vignette.Problems.MateSearch;
-import blog.art.chess.vignette.Problems.Perft;
-import blog.art.chess.vignette.Problems.Problem;
+import blog.art.chess.vignette.Move.NullMove;
+import blog.art.chess.vignette.Node.DivideLeaf;
+import blog.art.chess.vignette.Node.DivideRoot;
+import blog.art.chess.vignette.Node.IllegalNode;
+import blog.art.chess.vignette.Node.MateBranch;
+import blog.art.chess.vignette.Node.MateLeaf;
+import blog.art.chess.vignette.Node.MateRoot;
+import blog.art.chess.vignette.Node.PerftNode;
+import blog.art.chess.vignette.Problem.MateSearch;
+import blog.art.chess.vignette.Problem.Perft;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;

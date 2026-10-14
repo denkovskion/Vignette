@@ -24,47 +24,39 @@
 
 package blog.art.chess.vignette;
 
-import blog.art.chess.vignette.Pieces.Piece;
+sealed interface Unit {
 
-class Moves {
+  enum Square implements Unit {EMPTY, BORDER}
 
-  sealed interface Move {
+  sealed interface Piece extends Unit {
 
-  }
+    Colour colour();
 
-  record NullMove() implements Move {
+    sealed interface Category extends Piece {
 
-  }
+      record King(Colour colour) implements Category {
 
-  record QuietMove(int origin, int target) implements Move {
+      }
 
-  }
+      record Queen(Colour colour) implements Category {
 
-  record Capture(int origin, int target) implements Move {
+      }
 
-  }
+      record Rook(Colour colour) implements Category {
 
-  record LongCastling(int origin, int target, int origin2, int target2) implements Move {
+      }
 
-  }
+      record Bishop(Colour colour) implements Category {
 
-  record ShortCastling(int origin, int target, int origin2, int target2) implements Move {
+      }
 
-  }
+      record Knight(Colour colour) implements Category {
 
-  record DoubleStep(int origin, int target, int stop) implements Move {
+      }
+    }
 
-  }
+    record Pawn(Colour colour) implements Piece {
 
-  record EnPassant(int origin, int target, int stop) implements Move {
-
-  }
-
-  record Promotion(int origin, int target, Piece promoted) implements Move {
-
-  }
-
-  record PromotionCapture(int origin, int target, Piece promoted) implements Move {
-
+    }
   }
 }

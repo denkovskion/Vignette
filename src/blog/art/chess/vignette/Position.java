@@ -24,8 +24,6 @@
 
 package blog.art.chess.vignette;
 
-import blog.art.chess.vignette.Pieces.Colour;
-import blog.art.chess.vignette.Pieces.Unit;
 import java.util.List;
 import java.util.Set;
 

@@ -24,14 +24,9 @@
 
 package blog.art.chess.vignette;
 
-import blog.art.chess.vignette.Moves.Move;
 import java.util.List;
 
-class Nodes {
-
-  sealed interface Node {
-
-  }
+sealed interface Node {
 
   record DivideRoot(long count, List<Node> children) implements Node {
 

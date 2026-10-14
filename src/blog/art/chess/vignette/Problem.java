@@ -24,46 +24,15 @@
 
 package blog.art.chess.vignette;
 
-class Pieces {
+sealed interface Problem {
 
-  sealed interface Unit {
+  Position position();
 
-  }
-
-  enum Square implements Unit {EMPTY, BORDER}
-
-  enum Colour {WHITE, BLACK}
-
-  sealed interface Piece extends Unit {
-
-    Colour colour();
-  }
-
-  sealed interface Category extends Piece {
+  record Perft(Position position, int nPlies) implements Problem {
 
   }
 
-  record King(Colour colour) implements Category {
-
-  }
-
-  record Queen(Colour colour) implements Category {
-
-  }
-
-  record Rook(Colour colour) implements Category {
-
-  }
-
-  record Bishop(Colour colour) implements Category {
-
-  }
-
-  record Knight(Colour colour) implements Category {
-
-  }
-
-  record Pawn(Colour colour) implements Piece {
+  record MateSearch(Position position, int nMoves) implements Problem {
 
   }
 }

@@ -24,19 +24,16 @@
 
 package blog.art.chess.vignette;
 
-import blog.art.chess.vignette.Pieces.Bishop;
-import blog.art.chess.vignette.Pieces.Colour;
-import blog.art.chess.vignette.Pieces.King;
-import blog.art.chess.vignette.Pieces.Knight;
-import blog.art.chess.vignette.Pieces.Pawn;
-import blog.art.chess.vignette.Pieces.Piece;
-import blog.art.chess.vignette.Pieces.Queen;
-import blog.art.chess.vignette.Pieces.Rook;
-import blog.art.chess.vignette.Pieces.Square;
-import blog.art.chess.vignette.Pieces.Unit;
-import blog.art.chess.vignette.Problems.MateSearch;
-import blog.art.chess.vignette.Problems.Perft;
-import blog.art.chess.vignette.Problems.Problem;
+import blog.art.chess.vignette.Problem.MateSearch;
+import blog.art.chess.vignette.Problem.Perft;
+import blog.art.chess.vignette.Unit.Piece;
+import blog.art.chess.vignette.Unit.Piece.Category.Bishop;
+import blog.art.chess.vignette.Unit.Piece.Category.King;
+import blog.art.chess.vignette.Unit.Piece.Category.Knight;
+import blog.art.chess.vignette.Unit.Piece.Category.Queen;
+import blog.art.chess.vignette.Unit.Piece.Category.Rook;
+import blog.art.chess.vignette.Unit.Piece.Pawn;
+import blog.art.chess.vignette.Unit.Square;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
