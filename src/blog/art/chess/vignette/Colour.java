@@ -24,4 +24,4 @@
 
 package blog.art.chess.vignette;
 
-public enum Colour {WHITE, BLACK}
+enum Colour {WHITE, BLACK}

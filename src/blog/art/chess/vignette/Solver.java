@@ -34,6 +34,8 @@ import blog.art.chess.vignette.Node.MateRoot;
 import blog.art.chess.vignette.Node.PerftNode;
 import blog.art.chess.vignette.Problem.MateSearch;
 import blog.art.chess.vignette.Problem.Perft;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -50,7 +52,7 @@ class Solver {
     IO.println(Parser.formatToString(problem));
     IO.println();
     LOGGER.log(Level.INFO, detailed ? "Solving with analysis..." : "Solving...");
-    long begin = System.currentTimeMillis();
+    Instant begin = Instant.now();
     Node solution;
     List<Move> pseudoLegalMoves = new ArrayList<>();
     if (Engine.isPositionLegal(problem.position(), pseudoLegalMoves)) {
@@ -69,8 +71,9 @@ class Solver {
       solution = new IllegalNode();
     }
     IO.println(formatToString(solution, problem.position(), 1, false));
-    long end = System.currentTimeMillis();
-    LOGGER.log(Level.INFO, "Finished solving in {0,number,0}ms.", end - begin);
+    Instant end = Instant.now();
+    LOGGER.log(Level.INFO, "Finished solving in {0,number,0}ms.",
+        Duration.between(begin, end).toMillis());
   }
 
   private static long count(Position position, int nPlies, List<Move> pseudoLegalMoves,
